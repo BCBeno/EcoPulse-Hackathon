@@ -40,12 +40,14 @@ from app.schemas.domain import (
     ReportCategory,
     ReportCreate,
     RouteRequest,
+    TextReport,
     UserOut,
     WorkReview,
 )
 from app.services.assistant import answer_with_optional_llm
 from app.services.assistant_reporting import create_pollution_report
 from app.services.journeys import calculate
+from app.services.quick_report import publish_from_text
 from app.services.reports import create_report, report_output, vote_report
 from app.services.scoring import aware
 
@@ -185,6 +187,22 @@ async def report_detail(report_id: str, db: DB):
 @router.post("/reports", status_code=201, dependencies=[Depends(write_limit)])
 async def report_create(payload: ReportCreate, db: DB, user=Depends(current_user)):
     return await create_report(db, user, payload)
+
+
+@router.post("/reports/from-text", status_code=201, dependencies=[Depends(write_limit)])
+async def report_from_text(payload: TextReport, request: Request, db: DB, user=Depends(current_user)):
+    s, w, n, e = get_settings().bounds
+    if not (s <= payload.latitude <= n and w <= payload.longitude <= e):
+        raise HTTPException(422, "Locația curentă este în afara zonei acoperite de EcoPulse (Iași).")
+    return await publish_from_text(
+        db,
+        user,
+        payload.text.strip(),
+        payload.latitude,
+        payload.longitude,
+        get_settings(),
+        request.app.state.http,
+    )
 
 
 @router.get("/reports/{report_id}/feedback")
