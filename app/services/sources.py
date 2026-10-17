@@ -1,7 +1,7 @@
 import asyncio
 from datetime import UTC, datetime
 
-from sqlalchemy import select
+from sqlalchemy import delete, select
 
 from app.db.session import Session
 from app.integrations.cams import CamsAirQualityProvider
@@ -116,6 +116,13 @@ class SourceService:
                             if record.provenance.get("product") == "reanalysis":
                                 model = WeatherObservation
                             await db.merge(model(id=record.id, **record.model_dump()))
+                    if name == "osm":
+                        # Construction removed from OSM must disappear from the map as well.
+                        await db.execute(
+                            delete(MappedFeature).where(
+                                MappedFeature.source_id.not_in([r["source_id"] for r in records])
+                            )
+                        )
                     if name == "openaq":
                         for station in self.providers[name].stations:
                             coords = station.get("coordinates") or {}

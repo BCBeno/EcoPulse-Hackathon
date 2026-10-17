@@ -2,10 +2,19 @@ import hashlib
 import math
 from datetime import UTC, datetime, timedelta
 from enum import StrEnum
-from typing import Literal
+from typing import Annotated, Literal
 from uuid import UUID
 
-from pydantic import AwareDatetime, BaseModel, ConfigDict, EmailStr, Field, field_validator, model_validator
+from pydantic import (
+    AwareDatetime,
+    BaseModel,
+    ConfigDict,
+    EmailStr,
+    Field,
+    StringConstraints,
+    field_validator,
+    model_validator,
+)
 
 
 class Category(StrEnum):
@@ -83,7 +92,8 @@ def normalize_value(value, unit, parameter):
 class Register(BaseModel):
     email: EmailStr
     password: str = Field(min_length=10, max_length=128)
-    display_name: str = Field(min_length=2, max_length=80)
+    # Stripped before validation so "  a " cannot bypass the minimum length.
+    display_name: Annotated[str, StringConstraints(strip_whitespace=True, min_length=2, max_length=80)]
 
 
 class Login(BaseModel):
@@ -132,7 +142,8 @@ class TextReport(Coordinates):
     """Free-text report published at the device's current location, without follow-up questions."""
 
     text: str = Field(min_length=2, max_length=2000)
-    accuracy_m: float | None = Field(default=None, ge=0, allow_inf_nan=False)
+    # A fix worse than 1 km cannot place a 500 m incident area; the frontend asks for a map pick.
+    accuracy_m: float | None = Field(default=None, ge=0, le=1000, allow_inf_nan=False)
 
 
 class RouteRequest(UTCModel):

@@ -48,7 +48,7 @@ from app.services.assistant import answer_with_optional_llm
 from app.services.assistant_reporting import create_pollution_report
 from app.services.journeys import calculate
 from app.services.quick_report import publish_from_text
-from app.services.reports import create_report, report_output, vote_counts, vote_report
+from app.services.reports import RESOLVE_DISPUTES, create_report, report_output, vote_counts, vote_report
 from app.services.scoring import aware
 
 router = APIRouter(prefix="/api/v1")
@@ -112,6 +112,7 @@ async def public_config():
         "tile_url": s.map_tile_url,
         "modes": ["walk", "bike"] + (["motorcycle"] if s.motorcycle_enabled else []),
         "routing_configured": bool(s.valhalla_base_url),
+        "report_resolve_disputes": RESOLVE_DISPUTES,
         "attributions": [
             {"label": "© OpenStreetMap contributors", "url": "https://www.openstreetmap.org/copyright"},
             {"label": "Sensor.Community", "url": "https://sensor.community/"},
@@ -153,9 +154,9 @@ async def reports(
         if stamp and stamp.tzinfo is None:
             raise HTTPException(422, "Time filters require timezone offsets")
     if since:
-        query = query.where(Report.observed_at >= since)
+        query = query.where(Report.observed_at >= since.astimezone(UTC))
     if until:
-        query = query.where(Report.observed_at <= until)
+        query = query.where(Report.observed_at <= until.astimezone(UTC))
     if bbox:
         s, w, n, e = validate_bbox(bbox)
         if db.bind.dialect.name == "postgresql":
@@ -292,6 +293,8 @@ async def environment(
     ]
     | None = None,
     parameter: str | None = Query(None, max_length=60),
+    since: datetime | None = None,
+    until: datetime | None = None,
     limit: int = Query(100, ge=1, le=500),
 ):
     query = select(Observation)
@@ -299,6 +302,15 @@ async def environment(
         query = query.where(Observation.category == category)
     if parameter:
         query = query.where(Observation.parameter == parameter)
+    for stamp in (since, until):
+        if stamp and stamp.tzinfo is None:
+            raise HTTPException(422, "Time filters require timezone offsets")
+    # Filter on the valid time, so clients can ask for current readings rather than the newest rows.
+    # Normalised to UTC: SQLite stores timestamps without their offset.
+    if since:
+        query = query.where(Observation.observed_at >= since.astimezone(UTC))
+    if until:
+        query = query.where(Observation.observed_at <= until.astimezone(UTC))
     rows = (
         await db.scalars(
             query.order_by(Observation.retrieved_at.desc(), Observation.observed_at.desc()).limit(limit)
@@ -370,7 +382,9 @@ async def stations(db: DB):
 
 @router.get("/disruptions/features")
 async def mapped_features(db: DB, limit: int = Query(100, ge=1, le=500)):
-    rows = (await db.scalars(select(MappedFeature).limit(limit))).all()
+    rows = (
+        await db.scalars(select(MappedFeature).order_by(MappedFeature.retrieved_at.desc()).limit(limit))
+    ).all()
     return {
         "items": [
             {
@@ -391,8 +405,20 @@ async def mapped_features(db: DB, limit: int = Query(100, ge=1, le=500)):
 
 @router.get("/disruptions/planned")
 async def planned_works(db: DB):
+    # Only works that can still affect the map: cancelled, finished or unlocated works are omitted.
     rows = (
-        await db.scalars(select(PlannedWork).where(PlannedWork.verification == "verified").limit(100))
+        await db.scalars(
+            select(PlannedWork)
+            .where(
+                PlannedWork.verification == "verified",
+                PlannedWork.status.in_(["scheduled", "active"]),
+                PlannedWork.ends_at >= datetime.now(UTC),
+                PlannedWork.latitude.is_not(None),
+                PlannedWork.longitude.is_not(None),
+            )
+            .order_by(PlannedWork.starts_at)
+            .limit(100)
+        )
     ).all()
     return {"items": [work_output(x) for x in rows]}
 

@@ -13,6 +13,7 @@ from datetime import UTC, datetime
 from typing import get_args
 
 import httpx
+from fastapi import HTTPException
 from pydantic import BaseModel, Field, ValidationError
 
 from app.schemas.domain import ReportCategory, ReportCreate
@@ -39,15 +40,16 @@ KEYWORDS = [
     ("dust", r"\b(praf\w*|pulber\w*)\b"),
     ("flooding", r"\b(inunda\w*|balt\w*|apa pe|baltoac\w*|canal\w* infundat\w*)\b"),
     ("lighting", r"\b(iluminat\w*|bec\w*|felinar\w*|stalp\w* de iluminat|intuneric|nu (mai )?(merge|functioneaza) lumina)\b"),
+    # Traffic before obstruction: "trafic blocat" is congestion, not an obstacle on the road.
+    ("traffic", r"\b(trafic\w*|ambuteiaj\w*|coada|aglomera\w*)\b"),
     ("obstruction", r"\b(copac\w*|crengi|craci|blocat\w*|obstacol\w*|masin\w* parcat\w* pe trotuar)\b"),
     ("infrastructure", r"\b(groap\w*|gropi|trotuar\w*|asfalt\w*|capac\w*|canal\w*|semafor\w*|bordur\w*|pod\w*)\b"),
     ("construction", r"\b(santier\w*|demolar\w*|constructi\w*|lucrar\w*)\b"),
     ("machinery", r"\b(utilaj\w*|excavator\w*|buldozer\w*|macara\w*)\b"),
-    ("traffic", r"\b(trafic\w*|ambuteiaj\w*|coada|aglomera\w*)\b"),
     ("industrial", r"\b(industr\w*|fabric\w*|uzin\w*|miros\w*|mirose\w*|chimic\w*)\b"),
 ]
 
-SEVERE = r"\b(periculos\w*|grav\w*|urgent\w*|accident\w*|ranit\w*|foarte mare|enorm\w*|blocat complet)\b"
+SEVERE = r"\b(pericul\w*|grav\w*|urgent\w*|accident\w*|ranit\w*|foarte mare|enorm\w*|blocat complet)\b"
 MINOR = r"\b(mic\w*|usor|putin)\b"
 
 # Conversational wrappers that do not belong in a public description.
@@ -59,16 +61,26 @@ PREAMBLE = re.compile(
 )
 
 
+def aligned(text):
+    """Lower-case, accent-free copy with exactly one character per character of `text`."""
+    return "".join((unicodedata.normalize("NFKD", c)[:1] or c).lower()[:1] or c for c in text)
+
+
+def clean(text):
+    return re.sub(r"\s+", " ", text).strip(" ,;:-")
+
+
 def deterministic(text):
-    # NFC keeps one character per letter, so offsets in the accent-free copy match the original.
     text = unicodedata.normalize("NFC", text)
     plain = normalized(text)
     category = next((c for c, pattern in KEYWORDS if re.search(pattern, plain)), "other")
     severity = 4 if re.search(SEVERE, plain) else 1 if re.search(MINOR, plain) else 2
-    # Strip the preamble on the accent-free copy, then cut the same length from the original.
-    cut = PREAMBLE.match(plain).end()
-    body = text[cut:] if len(text) - cut >= 5 else text
-    body = re.sub(r"\s+", " ", body).strip(" ,;:-")
+    # Strip the preamble on an offset-aligned accent-free copy, then cut the same length from the
+    # original. Keep the whole text when too little would remain (e.g. "raportez ca - fum").
+    cut = PREAMBLE.match(aligned(text)).end()
+    body = clean(text[cut:])
+    if len(body) < 5:
+        body = clean(text)
     body = body[0].upper() + body[1:]
     if body[-1] not in ".!?":
         body += "."
@@ -127,6 +139,8 @@ async def rewrite(text, settings, http):
 
 
 async def publish_from_text(db, user, text, latitude, longitude, settings, http):
+    if len(clean(text)) < 5 or not re.search(r"\w", text):
+        raise HTTPException(422, "Descrierea este prea scurtă. Spune pe scurt ce ai observat.")
     result, engine = await rewrite(text, settings, http)
     report = await create_report(
         db,
