@@ -5,11 +5,12 @@ from secrets import token_urlsafe
 from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-ROOT = Path(__file__).resolve().parents[3]
+# app/core/config.py -> repository root
+ROOT = Path(__file__).resolve().parents[2]
 
 
 class Settings(BaseSettings):
-    model_config = SettingsConfigDict(env_file=(ROOT / ".env", ROOT / "backend/.env"), extra="ignore")
+    model_config = SettingsConfigDict(env_file=ROOT / ".env", extra="ignore")
     app_env: str = "development"
     database_url: str = f"sqlite+aiosqlite:///{ROOT / 'ecopulse.db'}"
     jwt_secret_key: str = Field(default_factory=lambda: token_urlsafe(48))

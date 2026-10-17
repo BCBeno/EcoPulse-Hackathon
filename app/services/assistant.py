@@ -29,7 +29,7 @@ def local_reply(content):
 class DeterministicAssistant:
     """Grounded Romanian fallback; no generated external claims or unrestricted tools."""
 
-    async def answer(self, db, payload, settings, http):
+    async def answer(self, db, payload, settings, http, route_result=None):
         conversational = local_reply(payload.content)
         if conversational is not None:
             return conversational
@@ -48,7 +48,7 @@ class DeterministicAssistant:
                 "llm_status": "not_configured",
             }
         try:
-            result = await calculate(db, payload.route_request, settings, http)
+            result = route_result or await calculate(db, payload.route_request, settings, http)
         except ProviderError as exc:
             return {
                 "content": "Rutarea nu este disponibilă în acest moment. Nu pot recomanda un traseu fără rute valide de la furnizor.",
@@ -89,10 +89,11 @@ async def answer_with_optional_llm(db, user, payload, settings, http):
     from app.integrations.openrouter import OpenRouterProvider
     from app.services.assistant_tools import backend_tools
 
+    route_cache = {}
     try:
         provider = OpenRouterProvider if settings.llm_provider == "openrouter" else OpenAIResponsesProvider
         selection, results = await provider(settings, http).select(
-            payload.content, backend_tools(db, user, payload, settings, http)
+            payload.content, backend_tools(db, user, payload, settings, http, route_cache=route_cache)
         )
         evidence = [
             e
@@ -102,7 +103,10 @@ async def answer_with_optional_llm(db, user, payload, settings, http):
         ]
         evidence = list({e["id"]: e for e in evidence}.values())
         if selection.focus == "routes":
-            answer = await DeterministicAssistant().answer(db, payload, settings, http)
+            # Reuse the routes the calculate_routes tool already computed.
+            answer = await DeterministicAssistant().answer(
+                db, payload, settings, http, route_result=route_cache.get("result")
+            )
             answer["llm_status"], answer["engine"] = (
                 "tool_selection_completed",
                 "llm_tools_with_deterministic_explanation",

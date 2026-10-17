@@ -11,22 +11,17 @@ class OpenRouterProvider(OpenAIResponsesProvider):
         messages = [{"role": "system", "content": payload["instructions"]}]
         for item in payload["input"]:
             if item.get("type") == "function_call":
-                messages.append(
-                    {
-                        "role": "assistant",
-                        "content": None,
-                        "tool_calls": [
-                            {
-                                "id": item["call_id"],
-                                "type": "function",
-                                "function": {
-                                    "name": item["name"],
-                                    "arguments": item["arguments"],
-                                },
-                            }
-                        ],
-                    }
-                )
+                call = {
+                    "id": item["call_id"],
+                    "type": "function",
+                    "function": {"name": item["name"], "arguments": item["arguments"]},
+                }
+                # Consecutive calls belong to one assistant turn; tool results must follow that turn.
+                last = messages[-1]
+                if last.get("role") == "assistant" and last.get("tool_calls"):
+                    last["tool_calls"].append(call)
+                else:
+                    messages.append({"role": "assistant", "content": None, "tool_calls": [call]})
             elif item.get("type") == "function_call_output":
                 messages.append({"role": "tool", "tool_call_id": item["call_id"], "content": item["output"]})
             else:
@@ -46,6 +41,8 @@ class OpenRouterProvider(OpenAIResponsesProvider):
                 tools=self.tool_definitions,
                 tool_choice=payload["tool_choice"],
             )
+            if "parallel_tool_calls" in payload:
+                body["parallel_tool_calls"] = payload["parallel_tool_calls"]
         if "text" in payload:
             body.update(tools=self.tool_definitions, tool_choice="none")
             schema = payload["text"]["format"]
@@ -76,7 +73,7 @@ class OpenRouterProvider(OpenAIResponsesProvider):
                     "name": call["function"]["name"],
                     "arguments": call["function"]["arguments"],
                 }
-                for call in message.get("tool_calls", [])
+                for call in message.get("tool_calls") or []
             ]
             if not output and message.get("content"):
                 output.append(

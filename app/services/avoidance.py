@@ -5,16 +5,14 @@ from datetime import UTC, datetime, timedelta
 
 from shapely.geometry import LineString, Point
 
-from app.services.scoring import aware, projected
+from app.services.scoring import active_report, active_work, aware, projected
 
 
 def incident_zones(reports, works, departure, radius_m):
     zones = []
     departure = aware(departure)
     for report in reports:
-        if report.status not in {"pending", "confirmed"} or not (
-            aware(report.observed_at) <= departure < aware(report.expires_at)
-        ):
+        if not active_report(report, departure):
             continue
         zones.append(
             {
@@ -32,19 +30,7 @@ def incident_zones(reports, works, departure, radius_m):
             }
         )
     for work in works:
-        if (
-            work.verification != "verified"
-            or work.status not in {"active", "scheduled"}
-            or work.latitude is None
-            or work.longitude is None
-            or not work.starts_at
-            or not work.ends_at
-            or not work.last_verified_at
-        ):
-            continue
-        if not (aware(work.starts_at) <= departure <= aware(work.ends_at)) or datetime.now(UTC) - aware(
-            work.last_verified_at
-        ) > timedelta(days=7):
+        if not active_work(work, departure):
             continue
         zones.append(
             {

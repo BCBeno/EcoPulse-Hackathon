@@ -2,7 +2,6 @@
 
 import hashlib
 import re
-import unicodedata
 
 from fastapi import HTTPException
 from fastapi.encoders import jsonable_encoder
@@ -11,12 +10,9 @@ from sqlalchemy.exc import IntegrityError
 
 from app.models.entities import AssistantAction
 from app.schemas.domain import ReportCreate
+from app.services.report_locations import normalize as normalized
 from app.services.report_locations import resolve_location
 from app.services.reports import create_report
-
-
-def normalized(text):
-    return "".join(c for c in unicodedata.normalize("NFKD", text.lower()) if not unicodedata.combining(c))
 
 
 def one_edit_apart(word, target):

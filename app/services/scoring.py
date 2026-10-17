@@ -1,5 +1,5 @@
 import math
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 
 from shapely.affinity import scale
 from shapely.geometry import LineString, Point, shape
@@ -7,6 +7,30 @@ from shapely.geometry import LineString, Point, shape
 
 def aware(value):
     return value.replace(tzinfo=UTC) if value.tzinfo is None else value.astimezone(UTC)
+
+
+WORK_VERIFICATION_MAX_AGE = timedelta(days=7)
+
+
+def active_report(report, departure):
+    """An open community report that is valid at the departure time."""
+    return report.status in {"pending", "confirmed"} and (
+        aware(report.observed_at) <= aware(departure) < aware(report.expires_at)
+    )
+
+
+def active_work(work, departure, now=None):
+    """A verified, located, recently reviewed planned work overlapping the departure time."""
+    now = now or datetime.now(UTC)
+    return (
+        work.verification == "verified"
+        and work.status in {"active", "scheduled"}
+        and work.latitude is not None
+        and work.longitude is not None
+        and bool(work.starts_at and work.ends_at and work.last_verified_at)
+        and aware(work.starts_at) <= aware(departure) <= aware(work.ends_at)
+        and now - aware(work.last_verified_at) <= WORK_VERIFICATION_MAX_AGE
+    )
 
 
 def projected(geometry, latitude):
@@ -90,9 +114,7 @@ class EnvironmentalRouteScoringService:
                 }
             )
         for report in reports:
-            if report.status not in {"pending", "confirmed"} or not (
-                aware(report.observed_at) <= departure < aware(report.expires_at)
-            ):
+            if not active_report(report, departure):
                 continue
             distance = metric.distance(projected(Point(report.longitude, report.latitude), latitude))
             if distance > 150:
@@ -131,19 +153,7 @@ class EnvironmentalRouteScoringService:
                     }
                 )
         for work in works:
-            if (
-                work.verification != "verified"
-                or work.status not in {"active", "scheduled"}
-                or not work.starts_at
-                or not work.ends_at
-                or work.latitude is None
-            ):
-                continue
-            if (
-                not (aware(work.starts_at) <= departure <= aware(work.ends_at))
-                or not work.last_verified_at
-                or (now - aware(work.last_verified_at)).days > 7
-            ):
+            if not active_work(work, departure, now):
                 continue
             distance = metric.distance(projected(Point(work.longitude, work.latitude), latitude))
             if distance <= 150:

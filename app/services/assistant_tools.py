@@ -8,7 +8,7 @@ from app.services.journeys import calculate
 from app.services.scoring import aware
 
 
-def backend_tools(db, user, payload, settings, http):
+def backend_tools(db, user, payload, settings, http, route_cache=None):
     async def route_context():
         if payload.route_request is None:
             return {"available": False, "reason": "Validated origin and destination required", "evidence": []}
@@ -16,6 +16,8 @@ def backend_tools(db, user, payload, settings, http):
             result = await calculate(db, payload.route_request, settings, http)
         except ProviderError as exc:
             return {"available": False, "reason": exc.code, "evidence": []}
+        if route_cache is not None:
+            route_cache["result"] = result
         return {
             "available": True,
             "routes": [

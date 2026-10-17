@@ -19,13 +19,24 @@ EXPIRY_HOURS = {
 }
 
 
-async def report_output(db, report):
-    votes = (
-        await db.execute(
-            select(Vote.kind, func.count()).where(Vote.report_id == report.id).group_by(Vote.kind)
-        )
-    ).all()
-    counts = dict(votes)
+async def vote_counts(db, report_ids):
+    """Vote totals per report, loaded with one grouped query."""
+    counts = {report_id: {} for report_id in report_ids}
+    if not counts:
+        return counts
+    rows = await db.execute(
+        select(Vote.report_id, Vote.kind, func.count())
+        .where(Vote.report_id.in_(list(counts)))
+        .group_by(Vote.report_id, Vote.kind)
+    )
+    for report_id, kind, total in rows:
+        counts[report_id][kind] = total
+    return counts
+
+
+async def report_output(db, report, counts=None):
+    if counts is None:
+        counts = (await vote_counts(db, [report.id]))[report.id]
     age = max(0, (datetime.now(UTC) - aware(report.observed_at)).total_seconds() / 3600)
     confidence = max(0, min(90, 25 + counts.get("confirm", 0) * 12 - counts.get("dispute", 0) * 18 - age * 2))
     status = (

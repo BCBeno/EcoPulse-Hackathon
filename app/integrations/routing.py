@@ -145,15 +145,20 @@ class NominatimGeocodingProvider:
                 self.http.last_geocode = time.monotonic()
         if not isinstance(data, list):
             raise ProviderError("invalid_geocoder_response")
-        results = [
-            {
-                "label": x["display_name"],
-                "latitude": float(x["lat"]),
-                "longitude": float(x["lon"]),
-                "attribution": "© OpenStreetMap contributors",
-            }
-            for x in data
-        ]
+        results = []
+        for x in data:
+            try:
+                results.append(
+                    {
+                        "label": x["display_name"],
+                        "latitude": float(x["lat"]),
+                        "longitude": float(x["lon"]),
+                        "attribution": "© OpenStreetMap contributors",
+                    }
+                )
+            except (KeyError, TypeError, ValueError):
+                # Skip malformed upstream items instead of failing the whole request.
+                continue
         if len(self.cache) >= 500:
             self.cache.pop(next(iter(self.cache)))
         self.cache[key] = results

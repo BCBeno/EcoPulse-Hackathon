@@ -46,7 +46,7 @@ from app.schemas.domain import (
 from app.services.assistant import answer_with_optional_llm
 from app.services.assistant_reporting import create_pollution_report
 from app.services.journeys import calculate
-from app.services.reports import create_report, report_output, vote_report
+from app.services.reports import create_report, report_output, vote_counts, vote_report
 from app.services.scoring import aware
 
 router = APIRouter(prefix="/api/v1")
@@ -161,7 +161,12 @@ async def reports(
         else:
             query = query.where(Report.latitude.between(s, n), Report.longitude.between(w, e))
     rows = (await db.scalars(query.order_by(Report.created_at.desc()).offset(offset).limit(limit))).all()
-    return {"items": [await report_output(db, r) for r in rows], "limit": limit, "offset": offset}
+    counts = await vote_counts(db, [r.id for r in rows])
+    return {
+        "items": [await report_output(db, r, counts[r.id]) for r in rows],
+        "limit": limit,
+        "offset": offset,
+    }
 
 
 def validate_bbox(value):
@@ -220,6 +225,8 @@ async def report_action(
     user=Depends(current_user),
 ):
     report = await get_or_404(db, Report, report_id)
+    if report.status == "hidden":
+        raise HTTPException(404, "Record not found")
     if action in {"confirm", "dispute"}:
         return await vote_report(db, user, report, action)
     if action == "resolve":
