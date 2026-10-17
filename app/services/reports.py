@@ -15,8 +15,14 @@ EXPIRY_HOURS = {
     "industrial": 12,
     "machinery": 8,
     "dust": 8,
+    "infrastructure": 72,
+    "flooding": 24,
+    "obstruction": 24,
+    "lighting": 72,
     "other": 6,
 }
+# Disputes from other users ("no longer there") that close a report without its author.
+RESOLVE_DISPUTES = 3
 
 
 async def vote_counts(db, report_ids):
@@ -95,9 +101,12 @@ async def vote_report(db, user, report, kind):
                 )
             ).all()
         )
+        confirms, disputes = counts.get("confirm", 0), counts.get("dispute", 0)
         report.status = (
-            "confirmed"
-            if counts.get("confirm", 0) >= 2 and counts.get("confirm", 0) > counts.get("dispute", 0)
+            "resolved"
+            if disputes >= RESOLVE_DISPUTES and disputes > confirms
+            else "confirmed"
+            if confirms >= 2 and confirms > disputes
             else "pending"
         )
         await db.commit()

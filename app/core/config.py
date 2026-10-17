@@ -5,12 +5,16 @@ from secrets import token_urlsafe
 from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-# app/core/config.py -> repository root
+# app/core/config.py -> repository root (the default sqlite file must stay writable in Docker)
 ROOT = Path(__file__).resolve().parents[2]
 
 
 class Settings(BaseSettings):
-    model_config = SettingsConfigDict(env_file=ROOT / ".env", extra="ignore")
+    # Later files win: a .env next to the repository (or in a sibling backend/) is still read,
+    # but the repository's own .env takes precedence.
+    model_config = SettingsConfigDict(
+        env_file=(ROOT.parent / ".env", ROOT.parent / "backend/.env", ROOT / ".env"), extra="ignore"
+    )
     app_env: str = "development"
     database_url: str = f"sqlite+aiosqlite:///{ROOT / 'ecopulse.db'}"
     jwt_secret_key: str = Field(default_factory=lambda: token_urlsafe(48))

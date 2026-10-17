@@ -145,6 +145,16 @@ def test_votes_unique_and_resolve_authorization(client, account):
     assert client.post(path + "/dispute", headers=voter2).status_code == 409
 
 
+def test_disputes_from_other_users_resolve_report(client, account):
+    author, *voters = (account(i) for i in range(1, 5))
+    report = client.post("/api/v1/reports", headers=author, json=report_payload()).json()
+    path = f"/api/v1/reports/{report['id']}"
+    assert client.post(path + "/dispute", headers=voters[0]).json()["status"] == "pending"
+    assert client.post(path + "/dispute", headers=voters[1]).json()["status"] == "pending"
+    assert client.post(path + "/dispute", headers=voters[2]).json()["status"] == "resolved"
+    assert all(item["id"] != report["id"] for item in client.get("/api/v1/reports").json()["items"])
+
+
 def test_expired_report_not_active(client, account):
     headers = account()
     report = client.post(

@@ -99,7 +99,19 @@ class UserOut(BaseModel):
     role: str
 
 
-ReportCategory = Literal["construction", "traffic", "smoke", "industrial", "machinery", "dust", "other"]
+ReportCategory = Literal[
+    "construction",
+    "traffic",
+    "smoke",
+    "industrial",
+    "machinery",
+    "dust",
+    "infrastructure",
+    "flooding",
+    "obstruction",
+    "lighting",
+    "other",
+]
 
 
 class ReportCreate(Coordinates):
@@ -114,6 +126,13 @@ class ReportCreate(Coordinates):
         if self.observed_at > now + timedelta(minutes=5) or self.observed_at < now - timedelta(hours=48):
             raise ValueError("Observation must be within the last 48 hours and not in the future")
         return self
+
+
+class TextReport(Coordinates):
+    """Free-text report published at the device's current location, without follow-up questions."""
+
+    text: str = Field(min_length=2, max_length=2000)
+    accuracy_m: float | None = Field(default=None, ge=0, allow_inf_nan=False)
 
 
 class RouteRequest(UTCModel):
