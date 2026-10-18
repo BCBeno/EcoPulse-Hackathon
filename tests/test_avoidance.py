@@ -42,6 +42,28 @@ def trip(points, duration):
     }
 
 
+def cams_payload(pm25=8.0):
+    start = int(datetime.now(UTC).replace(minute=0, second=0, microsecond=0).timestamp())
+    times = [start + 3600 * hour for hour in range(-2, 80)]
+    return {
+        "latitude": 47.17,
+        "longitude": 27.6,
+        "hourly_units": {
+            k: "μg/m³" for k in ("pm2_5", "pm10", "nitrogen_dioxide", "ozone", "sulphur_dioxide")
+        }
+        | {"european_aqi": "EAQI"},
+        "hourly": {
+            "time": times,
+            "pm2_5": [pm25] * len(times),
+            "pm10": [20.0] * len(times),
+            "nitrogen_dioxide": [12.0] * len(times),
+            "ozone": [40.0] * len(times),
+            "sulphur_dioxide": [1.0] * len(times),
+            "european_aqi": [30] * len(times),
+        },
+    }
+
+
 def request_body(**changes):
     return {
         "origin": {"latitude": 47.15, "longitude": 27.6},
@@ -56,9 +78,16 @@ def request_body(**changes):
 def routing_fixture(client, monkeypatch):
     settings = get_settings()
     monkeypatch.setattr(settings, "valhalla_base_url", "https://synthetic-routing.invalid")
-    state = {"mode": "detour", "calls": []}
+    state = {"mode": "detour", "calls": [], "air_calls": 0, "cams": "ok"}
 
     def handle(request):
+        if request.url.host == "air-quality-api.open-meteo.com":
+            state["air_calls"] += 1
+            return (
+                httpx.Response(500)
+                if state["cams"] == "failure"
+                else httpx.Response(200, json=cams_payload())
+            )
         payload = json.loads(request.url.params["json"])
         state["calls"].append(payload)
         if payload.get("exclude_polygons"):

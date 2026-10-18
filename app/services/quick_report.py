@@ -126,8 +126,10 @@ async def rewrite(text, settings, http):
     return deterministic(text), "deterministic"
 
 
-async def publish_from_text(db, user, text, latitude, longitude, settings, http):
+async def publish_from_text(db, user, text, latitude, longitude, settings, http, category=None):
     result, engine = await rewrite(text, settings, http)
+    if category:
+        result.category = category
     report = await create_report(
         db,
         user,

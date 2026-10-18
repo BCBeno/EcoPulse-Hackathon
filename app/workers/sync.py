@@ -1,11 +1,24 @@
 import asyncio
+import logging
 import signal
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 from app.core.config import get_settings
 from app.db.session import Base, engine
+from app.integrations.http import ProviderError
+from app.integrations.traffic import OsmMajorRoadsProvider
 from app.services.sources import SourceService
+
+log = logging.getLogger("ecopulse.sync")
+
+
+async def refresh_roads(settings, http):
+    try:
+        roads = await OsmMajorRoadsProvider(settings, http).fetch()
+        log.info("Road geometry for traffic refreshed: %d segments", len(roads))
+    except ProviderError as exc:
+        log.warning("Road geometry refresh failed (%s); the previous copy stays in use", exc.code)
 
 
 async def main():
@@ -41,6 +54,17 @@ async def main():
                 coalesce=True,
                 next_run_time=datetime.now(UTC) + timedelta(seconds=3 + index * 5),
             )
+    if settings.traffic_enabled:
+        scheduler.add_job(
+            refresh_roads,
+            "interval",
+            hours=24,
+            args=[settings, service.http],
+            id="osm_roads",
+            max_instances=1,
+            coalesce=True,
+            next_run_time=datetime.now(UTC) + timedelta(seconds=60),
+        )
     scheduler.start()
     stop = asyncio.Event()
     for sig in (signal.SIGTERM, signal.SIGINT):

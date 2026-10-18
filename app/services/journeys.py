@@ -6,6 +6,13 @@ from sqlalchemy import select
 from app.integrations.http import ProviderError
 from app.integrations.routing import ValhallaRoutingProvider
 from app.models.entities import MappedFeature, Observation, PlannedWork, Report, WeatherForecast
+from app.services.air_quality import (
+    ATTRIBUTION,
+    LIMITATION,
+    forecast_observations,
+    horizon_end,
+    route_air_quality,
+)
 from app.services.avoidance import (
     annotate_routes,
     distinct_routes,
@@ -111,10 +118,23 @@ async def calculate(db, request, settings, http):
         warnings.append("The avoidance search was limited to the highest-priority nearby incidents.")
     routes = annotate_routes(distinct_routes(routes), zones)
     relevant = [z for z in zones if any(intersects(r, z) for r in routes)]
+    longest = max(r["duration_s"] for r in routes)
+    cams = (
+        await db.scalars(
+            select(Observation).where(
+                Observation.category == "MODEL_FORECAST",
+                Observation.observed_at >= stamp - timedelta(hours=1),
+                Observation.observed_at <= stamp + timedelta(seconds=longest, hours=1),
+            )
+        )
+    ).all()
+    forecasts, air_status = await forecast_observations(cams, request, settings, http)
     scorer = EnvironmentalRouteScoringService()
     scored = scorer.compare(
         [scorer.score(route, stamp, observations, reports, features, works, weather) for route in routes]
     )
+    for route in scored:
+        route["air_quality"] = route_air_quality(route, stamp, forecasts, air_status)
     recommendation = recommend(scored, relevant, enabled, settings.route_max_detour_ratio)
     if status == "alternative_found":
         fastest = min(scored, key=lambda r: r["duration_s"])
@@ -128,6 +148,8 @@ async def calculate(db, request, settings, http):
             status = "partial_detour"
     if len(scored) == 1:
         warnings.append("Only one valid alternative returned by provider.")
+    if air_status == "beyond_forecast_horizon":
+        warnings.append("Departure is beyond the CAMS air quality forecast horizon.")
     return {
         "routes": scored,
         "departure_at": request.departure_at,
@@ -142,6 +164,13 @@ async def calculate(db, request, settings, http):
             "search_limited": capped,
             "attempts": attempts,
             "include_mapped_construction": include_mapped,
+        },
+        "air_quality_forecast": {
+            "status": air_status,
+            "horizon_end": horizon_end(settings).isoformat(),
+            "scale": "RNMCA 1-6",
+            "attribution": ATTRIBUTION,
+            "limitation": LIMITATION,
         },
         "attribution": "© OpenStreetMap contributors / Valhalla",
     }

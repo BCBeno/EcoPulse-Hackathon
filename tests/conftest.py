@@ -5,6 +5,8 @@ os.environ["APP_ENV"] = "test"
 os.environ["VALHALLA_BASE_URL"] = ""
 os.environ["OPENAQ_API_KEY"] = ""
 os.environ["LLM_PROVIDER"] = ""
+os.environ["TRAFFIC_ROADS_CACHE"] = ""
+os.environ["TOMTOM_API_KEY"] = ""
 os.environ["JWT_SECRET_KEY"] = "test-only-signing-secret-with-more-than-forty-characters"
 
 import pytest  # noqa: E402

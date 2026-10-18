@@ -133,6 +133,16 @@ class TextReport(Coordinates):
 
     text: str = Field(min_length=2, max_length=2000)
     accuracy_m: float | None = Field(default=None, ge=0, allow_inf_nan=False)
+    # Chosen explicitly by the user (e.g. «Fum»); otherwise inferred from the text.
+    category: ReportCategory | None = None
+
+
+class AskPayload(BaseModel):
+    """A question for the assistant; the optional position is the device's or a point on the map."""
+
+    text: str = Field(min_length=2, max_length=1000)
+    latitude: float | None = Field(default=None, ge=-90, le=90, allow_inf_nan=False)
+    longitude: float | None = Field(default=None, ge=-180, le=180, allow_inf_nan=False)
 
 
 class RouteRequest(UTCModel):

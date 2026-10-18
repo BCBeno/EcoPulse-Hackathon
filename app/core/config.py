@@ -44,6 +44,11 @@ class Settings(BaseSettings):
     route_detour_timeout_seconds: float = Field(default=20, ge=2, le=30)
     route_max_detour_ratio: float = Field(default=2, ge=1.1, le=4)
     geocoding_base_url: str = "https://nominatim.openstreetmap.org"
+    traffic_enabled: bool = True
+    # Last good OSM road geometry; empty disables the disk copy.
+    traffic_roads_cache: str = str(ROOT / "osm_roads.json")
+    tomtom_api_key: str = ""
+    tomtom_max_segments: int = Field(default=20, ge=1, le=60)
     forecast_days: int = Field(default=3, ge=1, le=3)
     sensor_community_sync_interval_minutes: int = Field(default=10, ge=5)
     openaq_sync_interval_minutes: int = Field(default=60, ge=30)

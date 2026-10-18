@@ -201,7 +201,7 @@ def test_weather_missing_units_reanalysis(settings):
 def test_cams_forecast_category_horizon(settings):
     provider = CamsAirQualityProvider(settings, None)
     rows = provider.parse(weather_fixture({"pm2_5": [12, None], "pm10": [20, 25]}))
-    assert len(rows) == 8
+    assert len(rows) == 12
     assert all(x.category == "MODEL_FORECAST" and x.quality["resolution_km"] == 11 for x in rows)
     assert all(x.provenance["model"] == "cams_europe" for x in rows)
     assert max(x.observed_at for x in rows) > min(x.observed_at for x in rows)

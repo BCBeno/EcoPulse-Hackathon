@@ -1,4 +1,4 @@
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from typing import Annotated, Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response
@@ -33,6 +33,7 @@ from app.models.entities import (
     WeatherForecast,
 )
 from app.schemas.domain import (
+    AskPayload,
     JourneyCreate,
     Login,
     MessageCreate,
@@ -44,12 +45,15 @@ from app.schemas.domain import (
     UserOut,
     WorkReview,
 )
+from app.services.air_assistant import ask
+from app.services.air_quality import ATTRIBUTION, LIMITATION, horizon_end, point_forecast
 from app.services.assistant import answer_with_optional_llm
 from app.services.assistant_reporting import create_pollution_report
 from app.services.journeys import calculate
 from app.services.quick_report import publish_from_text
 from app.services.reports import create_report, report_output, vote_report
 from app.services.scoring import aware
+from app.services.traffic import traffic_at
 
 router = APIRouter(prefix="/api/v1")
 DB = Annotated[AsyncSession, Depends(get_db)]
@@ -202,6 +206,7 @@ async def report_from_text(payload: TextReport, request: Request, db: DB, user=D
         payload.longitude,
         get_settings(),
         request.app.state.http,
+        payload.category,
     )
 
 
@@ -272,6 +277,28 @@ async def geocode(request: Request, q: str = Query(min_length=3, max_length=200)
     return {"items": await request.app.state.geocoder.search(q)}
 
 
+@router.get("/traffic", dependencies=[Depends(geocoding_limit)])
+async def traffic(db: DB, request: Request, at: datetime | None = None):
+    """Estimated congestion on major roads at a time (OSM road class x Iași profile, reports, TomTom)."""
+    s = get_settings()
+    if not s.traffic_enabled:
+        return {"available": False, "status": "disabled", "segments": []}
+    moment = aware(at) if at else datetime.now(UTC)
+    if moment < datetime.now(UTC) - timedelta(hours=1) or moment > datetime.now(UTC) + timedelta(days=30):
+        raise HTTPException(422, "Time must be now or within 30 days")
+    result = await traffic_at(db, moment, s, request.app.state.http)
+    status = "estimated" if result["segments"] else "roads_unavailable"
+    return {"available": bool(result["segments"]), "status": status, **result}
+
+
+@router.post("/assistant/ask", dependencies=[Depends(routing_limit)])
+async def assistant_ask(payload: AskPayload, request: Request, db: DB):
+    """Answers air quality and traffic questions from EcoPulse data; `kind: report` means «not a question»."""
+    return await ask(
+        db, payload.text.strip(), payload.latitude, payload.longitude, get_settings(), request.app.state.http
+    )
+
+
 @router.post("/routes/alternatives", dependencies=[Depends(routing_limit)])
 async def route_alternatives(payload: RouteRequest, request: Request, db: DB):
     return await calculate(db, payload, get_settings(), request.app.state.http)
@@ -326,6 +353,33 @@ def measurement_output(x):
         "freshness": "fresh" if age <= (21600 if x.category == "MODEL_FORECAST" else 7200) else "stale",
         "quality": x.quality,
         "provenance": x.provenance,
+    }
+
+
+@router.get("/environment/air-quality")
+async def air_quality(
+    db: DB,
+    request: Request,
+    start: datetime | None = None,
+    minutes: int = Query(60, ge=1, le=4320),
+):
+    """Hourly CAMS forecast for the city on the RNMCA 1-6 scale, for planning future trips."""
+    s = get_settings()
+    begin = aware(start) if start else datetime.now(UTC)
+    end = begin + timedelta(minutes=minutes)
+    forecast, status = await point_forecast(
+        db, begin, end, s.city_latitude, s.city_longitude, s, request.app.state.http
+    )
+    return {
+        "available": forecast is not None,
+        "status": status,
+        "window": {"start": begin, "end": end},
+        "horizon_end": horizon_end(s),
+        **(forecast or {}),
+        "scale": "RNMCA 1-6",
+        "attribution": ATTRIBUTION,
+        "limitation": LIMITATION,
+        "note": "An empty cache is not evidence of clean air.",
     }
 
 

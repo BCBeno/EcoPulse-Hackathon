@@ -64,7 +64,7 @@ class OpenMeteoWeatherProvider:
         ):
             raise ProviderError("unexpected_response_schema")
         results = []
-        aliases = {"pm2_5": "pm25", "nitrogen_dioxide": "no2", "ozone": "o3"}
+        aliases = {"pm2_5": "pm25", "nitrogen_dioxide": "no2", "ozone": "o3", "sulphur_dioxide": "so2"}
         for index, stamp in enumerate(data["hourly"]["time"]):
             for variable in self.variables.split(","):
                 values = data["hourly"].get(variable, [])
