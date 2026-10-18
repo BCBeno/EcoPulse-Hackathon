@@ -16,6 +16,8 @@ from pydantic import (
     model_validator,
 )
 
+from app.core.config import get_settings
+
 
 class Category(StrEnum):
     OFFICIAL = "OFFICIAL_MEASUREMENT"
@@ -142,7 +144,7 @@ class TextReport(Coordinates):
     """Free-text report published at the device's current location, without follow-up questions."""
 
     text: str = Field(min_length=2, max_length=2000)
-    # A fix worse than 1 km cannot place a 500 m incident area; the frontend asks for a map pick.
+    # A fix worse than 1 km cannot place a 100 m incident area; the frontend asks for a map pick.
     accuracy_m: float | None = Field(default=None, ge=0, le=1000, allow_inf_nan=False)
 
 
@@ -160,6 +162,33 @@ class RouteRequest(UTCModel):
             raise ValueError("Departure must be now or within 30 days")
         if self.origin == self.destination:
             raise ValueError("Origin and destination must differ")
+        return self
+
+
+class EcoRouteRequest(UTCModel):
+    """The map tab's three routes (`POST /routes/eco`); coordinates must lie in or near the city."""
+
+    origin: Coordinates
+    destination: Coordinates
+    profile: Literal["foot", "bike", "car"] = "foot"
+    # Only the traffic estimate depends on it; pollution always uses the current readings.
+    departure_at: AwareDatetime = Field(default_factory=lambda: datetime.now(UTC))
+
+    @model_validator(mode="after")
+    def check(self):
+        now = datetime.now(UTC)
+        if self.departure_at < now - timedelta(minutes=15) or self.departure_at > now + timedelta(days=1):
+            raise ValueError("Departure must be between now and 24 hours ahead")
+        if (self.origin.latitude, self.origin.longitude) == (
+            self.destination.latitude,
+            self.destination.longitude,
+        ):
+            raise ValueError("Origin and destination must differ")
+        s, w, n, e = get_settings().bounds
+        for point in (self.origin, self.destination):
+            # Same margin as the map's pan limits.
+            if not (s - 0.15 <= point.latitude <= n + 0.15 and w - 0.2 <= point.longitude <= e + 0.2):
+                raise ValueError("Route endpoints must be in the Iași area")
         return self
 
 

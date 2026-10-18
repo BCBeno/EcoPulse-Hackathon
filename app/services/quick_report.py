@@ -155,7 +155,7 @@ async def publish_from_text(db, user, text, latitude, longitude, settings, http)
         ),
     )
     return {
-        "reply": f"Am adăugat problema pe hartă, cu o rază de 500 m: „{result.description}”",
+        "reply": f"Am adăugat problema pe hartă, cu o rază de 100 m: „{result.description}”",
         "report": report,
         "engine": engine,
     }

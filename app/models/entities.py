@@ -123,6 +123,21 @@ class WeatherObservation(Measurement, Base):
     __tablename__ = "weather_reanalysis"
 
 
+class RoadSegment(Base):
+    """Major OpenStreetMap road (trunk ... tertiary), used to estimate traffic congestion."""
+
+    __tablename__ = "road_segments"
+    id: Mapped[str] = mapped_column(String(40), primary_key=True)  # "way/<osm id>"
+    name: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    highway: Mapped[str] = mapped_column(String(30), index=True)
+    lanes: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    oneway: Mapped[bool] = mapped_column(default=False)
+    signals: Mapped[int] = mapped_column(Integer, default=0)
+    length_m: Mapped[float] = mapped_column(Float)
+    geometry: Mapped[dict] = mapped_column(JSON)  # GeoJSON LineString, longitude/latitude
+    retrieved_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+
+
 class MappedFeature(Identity, Base):
     __tablename__ = "mapped_features"
     source_id: Mapped[str] = mapped_column(String(80), unique=True)

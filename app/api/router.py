@@ -33,6 +33,7 @@ from app.models.entities import (
     WeatherForecast,
 )
 from app.schemas.domain import (
+    EcoRouteRequest,
     JourneyCreate,
     Login,
     MessageCreate,
@@ -44,8 +45,10 @@ from app.schemas.domain import (
     UserOut,
     WorkReview,
 )
+from app.services.air_quality_service import AirQualityService
 from app.services.assistant import answer_with_optional_llm
 from app.services.assistant_reporting import create_pollution_report
+from app.services.eco_routing import compute_routes, congestion
 from app.services.journeys import calculate
 from app.services.quick_report import publish_from_text
 from app.services.reports import RESOLVE_DISPUTES, create_report, report_output, vote_counts, vote_report
@@ -285,6 +288,23 @@ async def route_alternatives(payload: RouteRequest, request: Request, db: DB):
     return await calculate(db, payload, get_settings(), request.app.state.http)
 
 
+@router.post("/routes/eco", dependencies=[Depends(routing_limit)])
+async def eco_routes(payload: EcoRouteRequest, request: Request, db: DB):
+    # Fastest / cleanest / balanced routes scored on pollution, traffic, construction and reports.
+    return await compute_routes(db, request.app.state.http, get_settings(), payload)
+
+
+@router.get("/traffic/congestion")
+async def traffic_congestion(
+    db: DB,
+    at: datetime | None = None,
+    minimum: Literal["fluid", "moderat", "aglomerat", "foarte_aglomerat"] = "moderat",
+):
+    if at is not None and at.tzinfo is None:
+        raise HTTPException(422, "Time filters require timezone offsets")
+    return await congestion(db, get_settings(), at or datetime.now(UTC), minimum)
+
+
 @router.get("/environment/observations")
 async def environment(
     db: DB,
@@ -346,6 +366,12 @@ def measurement_output(x):
         "quality": x.quality,
         "provenance": x.provenance,
     }
+
+
+@router.get("/air-quality")
+async def air_quality(request: Request, forecast_days: int = Query(3, ge=1, le=7)):
+    # Live CAMS readings + hourly forecast for Iași; ProviderHTTP caches each query for 10 minutes.
+    return await AirQualityService(request.app.state.http).fetch_air_quality(forecast_days=forecast_days)
 
 
 @router.get("/environment/weather")

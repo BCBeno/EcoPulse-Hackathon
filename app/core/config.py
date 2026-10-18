@@ -36,6 +36,7 @@ class Settings(BaseSettings):
     openmeteo_weather_enabled: bool = True
     openmeteo_air_quality_enabled: bool = True
     osm_features_enabled: bool = True
+    osm_roads_enabled: bool = True
     official_works_enabled: bool = False
     official_works_feed_url: str = ""
     official_works_allowed_host: str = "politialocala-iasi.ro"
@@ -54,6 +55,7 @@ class Settings(BaseSettings):
     weather_sync_interval_minutes: int = Field(default=60, ge=30)
     cams_sync_interval_minutes: int = Field(default=180, ge=60)
     osm_sync_interval_hours: int = Field(default=24, ge=12)
+    osm_roads_sync_interval_hours: int = Field(default=168, ge=24)
     official_works_sync_interval_hours: int = Field(default=12, ge=6)
     source_sync_enabled: bool = True
     map_tile_url: str = "https://tile.openstreetmap.org/{z}/{x}/{y}.png"

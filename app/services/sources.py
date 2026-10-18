@@ -8,7 +8,7 @@ from app.integrations.cams import CamsAirQualityProvider
 from app.integrations.http import ProviderError, ProviderHTTP
 from app.integrations.official_works import OfficialWorksProvider
 from app.integrations.openaq import OpenAQProvider
-from app.integrations.openstreetmap import OpenStreetMapFeaturesProvider
+from app.integrations.openstreetmap import OpenStreetMapFeaturesProvider, OpenStreetMapRoadsProvider
 from app.integrations.sensor_community import SensorCommunityProvider
 from app.integrations.weather import OpenMeteoWeatherProvider
 from app.models.entities import (
@@ -17,6 +17,7 @@ from app.models.entities import (
     MappedFeature,
     Observation,
     PlannedWork,
+    RoadSegment,
     Station,
     WeatherForecast,
     WeatherObservation,
@@ -35,6 +36,7 @@ class SourceService:
                 OpenMeteoWeatherProvider,
                 CamsAirQualityProvider,
                 OpenStreetMapFeaturesProvider,
+                OpenStreetMapRoadsProvider,
                 OfficialWorksProvider,
             )
         }
@@ -47,6 +49,7 @@ class SourceService:
             "weather": self.settings.openmeteo_weather_enabled,
             "cams": self.settings.openmeteo_air_quality_enabled,
             "osm": self.settings.osm_features_enabled,
+            "osm_roads": self.settings.osm_roads_enabled,
             "official_works": self.settings.official_works_enabled,
         }[name]
         missing = (name == "openaq" and not self.settings.openaq_api_key) or (
@@ -92,6 +95,8 @@ class SourceService:
                                     setattr(existing, key, value)
                             else:
                                 db.add(MappedFeature(**record))
+                        elif name == "osm_roads":
+                            await db.merge(RoadSegment(**record))
                         elif name == "official_works":
                             existing = await db.scalar(
                                 select(PlannedWork).where(PlannedWork.source_id == record["source_id"])
@@ -122,6 +127,10 @@ class SourceService:
                             delete(MappedFeature).where(
                                 MappedFeature.source_id.not_in([r["source_id"] for r in records])
                             )
+                        )
+                    if name == "osm_roads":
+                        await db.execute(
+                            delete(RoadSegment).where(RoadSegment.id.not_in([r["id"] for r in records]))
                         )
                     if name == "openaq":
                         for station in self.providers[name].stations:

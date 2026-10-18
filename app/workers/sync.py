@@ -24,6 +24,7 @@ async def main():
         "weather": settings.weather_sync_interval_minutes,
         "cams": settings.cams_sync_interval_minutes,
         "osm": settings.osm_sync_interval_hours * 60,
+        "osm_roads": settings.osm_roads_sync_interval_hours * 60,
         "official_works": settings.official_works_sync_interval_hours * 60,
     }
     scheduler = AsyncIOScheduler(timezone="UTC")
