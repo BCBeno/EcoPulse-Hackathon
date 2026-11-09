@@ -4,6 +4,7 @@ from fastapi import APIRouter, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 
+from app.agent.router import router as agent_router
 from app.air.router import router as air_router
 from app.config import Settings, get_settings
 from app.db import create_engine, create_sessionmaker
@@ -58,7 +59,15 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.add_middleware(GZipMiddleware, minimum_size=1024)
 
     api = APIRouter(prefix=API_PREFIX)
-    for router in (system_router, devices_router, reports_router, air_router, places_router, routing_router):
+    for router in (
+        system_router,
+        devices_router,
+        reports_router,
+        air_router,
+        places_router,
+        routing_router,
+        agent_router,
+    ):
         api.include_router(router)
     app.include_router(api)
     return app

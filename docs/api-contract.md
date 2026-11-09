@@ -6,7 +6,7 @@
 >
 > **Implementat:** sistem (`/health`, `/health/ready`, `/config`), dispozitive, rapoarte (inclusiv ciorne,
 > voturi, rezolvare, semnalări), `/map`, `/air/point`, `/air/forecast`, `/places/search`, `/places/reverse`,
-> `POST /routes`. **Urmează:** agent, admin.
+> `POST /routes`, agentul (`/agent/...`). **Urmează:** admin.
 
 ## Convenții
 
@@ -249,6 +249,7 @@ Eticheta, culoarea și sfatul pentru `level` se iau din `/config`. `source` lips
     {"at": "2026-11-10T08:00:00Z", "eaqi_level": 3, "pm25": 21.0, "pm10": 30.0, "no2": 18.0, "o3": 35.0}
   ],
   "best_window": {"start": "2026-11-10T13:00:00Z", "end": "2026-11-10T16:00:00Z", "eaqi_level": 2},
+  "_comment": "best_window: cel mai lung interval la cel mai bun nivel, doar între 07:00 și 21:00 ora României",
   "source": "CAMS Europe, corectat cu senzorii locali",
   "limitation": "…"
 }
@@ -453,7 +454,7 @@ Evenimente (fiecare are `event:` și `data:` JSON):
 | `text.delta` | `{"text": "Am înțeles"}` | bucăți din răspuns |
 | `card` | `Card` | când o unealtă a terminat |
 | `message.end` | `{"message_id": "…", "engine": "llm" \| "rules", "quota": {"limit": 30, "used": 5}}` | la final |
-| `error` | `{"code": "…", "message": "…"}` | eroare; fluxul se închide după |
+| `error` | `{"code": "…", "message": "…"}` | eroare; fluxul se închide după. `code`: `busy` (un alt mesaj al aceluiași dispozitiv e în curs) sau `internal_error` |
 
 Pe lângă acestea, la fiecare 15 s vine un comentariu `: ping` (keep-alive). Cota se verifică înainte
 de stream: dacă e epuizată, chatul primește răspuns pe reguli, cu `engine: "rules"`, nu o eroare.
@@ -476,6 +477,12 @@ de stream: dacă e epuizată, chatul primește răspuns pe reguli, cu `engine: "
 {"type": "places", "query": "gara", "items": [ /* Place */ ]}
 ```
 - `location_source`: `place` | `gps` | `map` | `none`.
+- `report_draft.status`: `pending` | `published` | `cancelled`. La `GET /agent/conversations/{id}` statusul e
+  cel actual (de ex. `published` după ce s-a apăsat „Publică”).
+- `message.end.engine`: `llm` (asistentul complet) sau `rules` (fără LLM: cota zilnică epuizată, furnizorii
+  indisponibili sau neconfigurați). În modul `rules`, textul începe cu motivul, iar traseele nu se pot cere
+  din chat.
+- Evenimentele `text.delta` pot veni înainte și după carduri; afișează-le în ordinea primirii.
 - La cardul `places`, utilizatorul alege o variantă, iar frontendul trimite un mesaj nou cu
   `selected_point` setat și textul variantei alese.
 

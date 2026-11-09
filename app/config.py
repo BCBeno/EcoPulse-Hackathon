@@ -55,6 +55,17 @@ class Settings(BaseSettings):
     forecast_horizon_h: int = Field(default=72, ge=1, le=96)
     map_poll_interval_s: int = Field(default=60, ge=10)
     agent_daily_messages: int = Field(default=30, ge=1)
+    # Stop calling LLMs for everyone after this many tokens per local day (stay under the free tiers).
+    agent_daily_token_budget: int = Field(default=400_000, ge=1000)
+
+    # LLM providers (OpenAI-compatible). Tried in order: Groq, then OpenRouter. Empty key = skipped;
+    # with no provider at all the chat runs on rules only.
+    groq_api_key: str = ""
+    # Comma-separated: each Groq model has its own per-minute token limit, so several add capacity.
+    groq_model: str = "openai/gpt-oss-120b,openai/gpt-oss-20b,qwen/qwen3.8-27b"
+    openrouter_api_key: str = ""
+    openrouter_model: str = ""
+    llm_timeout_s: float = Field(default=30, ge=5, le=120)
 
     # Rate limits.
     devices_per_hour_per_ip: int = Field(default=20, ge=1)

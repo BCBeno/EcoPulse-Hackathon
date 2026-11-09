@@ -395,7 +395,7 @@ async def air_forecast(
                 o3=rounded("o3"),
             )
         )
-    window = service.best_window([(h.at, h.eaqi_level) for h in hourly])
+    window = service.best_window([(h.at, h.eaqi_level) for h in hourly], settings.tz)
     return AirForecast(
         location=LatLon(lat=lat, lon=lon),
         hourly=hourly,

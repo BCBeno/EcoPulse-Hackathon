@@ -17,6 +17,8 @@ dependencies = [
   "tzdata>=2026.6",
   "numpy>=2.5.4",
   "apscheduler>=3.11,<4",
+  "openai>=3.48.0",
+  "sse-starlette>=3.7.0",
 ]
 
 [dependency-groups]

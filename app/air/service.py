@@ -247,9 +247,17 @@ async def point_series(
     return series
 
 
-def best_window(levels: list[tuple[datetime, int]]) -> tuple[datetime, datetime, int] | None:
-    """The longest run of consecutive hours at the best (lowest) known level."""
-    known = sorted((t, level) for t, level in levels if level)
+# "Best time to go out" only considers waking hours (local time, start of the hour).
+OUTDOOR_HOURS = range(7, 21)
+
+
+def best_window(levels: list[tuple[datetime, int]], local_tz=None) -> tuple[datetime, datetime, int] | None:
+    """The longest run of consecutive hours at the best (lowest) known level, within OUTDOOR_HOURS."""
+    known = sorted(
+        (t, level)
+        for t, level in levels
+        if level and (local_tz is None or t.astimezone(local_tz).hour in OUTDOOR_HOURS)
+    )
     if not known:
         return None
     best_level = min(level for _, level in known)

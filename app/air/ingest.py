@@ -10,6 +10,7 @@ from sqlalchemy import delete, func, select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
+from app.agent.models import Conversation
 from app.air.models import (
     GridSnapshot,
     Measurement,
@@ -31,6 +32,7 @@ MEASUREMENT_RETENTION = timedelta(days=7)
 FORECAST_RETENTION = timedelta(hours=24)
 GRID_RETENTION = timedelta(hours=6)
 RUN_RETENTION = timedelta(days=7)
+CONVERSATION_RETENTION = timedelta(days=30)
 OSM_STALE_AFTER = timedelta(hours=48)
 BATCH = 1000
 
@@ -162,6 +164,7 @@ async def cleanup(session: AsyncSession, now: datetime) -> int:
         delete(WeatherHour).where(WeatherHour.valid_at < now - FORECAST_RETENTION),
         delete(GridSnapshot).where(GridSnapshot.computed_at < now - GRID_RETENTION),
         delete(SourceRun).where(SourceRun.started_at < now - RUN_RETENTION),
+        delete(Conversation).where(Conversation.updated_at < now - CONVERSATION_RETENTION),
     ):
         removed += (await session.execute(statement)).rowcount or 0
     return removed

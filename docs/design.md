@@ -370,14 +370,21 @@ agentul întreabă utilizatorul (card `places`).
   sau schimba categoria înainte. Nu se consumă LLM la publicare.
 
 ### Furnizori și limite
-- Lanț: **Groq** (model principal pentru agent) → **OpenRouter** (model gratuit) la 429, 5xx sau
-  timeout → **modul pe reguli**.
-- Modelele concrete se aleg joi, după un test scurt în română cu tool calling. Sunt configurabile din
-  `.env`.
+- Lanț: **Groq** cu mai multe modele, pe rând (`openai/gpt-oss-120b`, `openai/gpt-oss-20b`,
+  `qwen/qwen3.8-27b`) → **OpenRouter** (`google/gemma-4-31b-it:free`) → **modul pe reguli**. Se trece la
+  următorul la orice eroare API (inclusiv 429 și argumente de unealtă respinse), cât timp încă nu s-a
+  trimis text utilizatorului; un furnizor cu 429 e sărit 20 s.
+- Limite Groq măsurate pe cheia noastră (2026-11-09): **8.000 de tokeni/minut și 1.000 de cereri/zi,
+  separat pe fiecare model**; de aceea rotim modelele. Un mesaj cu o unealtă consumă ~5–6.000 de tokeni
+  (prompt + unelte ~900, istoric, rezultatul uneltei, două cereri). Testul real: 4 mesaje la rând,
+  1,3–2,4 s fiecare; al patrulea a trecut automat pe `gpt-oss-20b`.
+- Dacă LLM-ul cade după ce o unealtă a rulat (de ex. ciorna e gata), cardurile rămân și nu se refac pe
+  reguli (altfel ar ieși două ciorne).
 - Cote: 30 de mesaje pe zi per dispozitiv; buget global zilnic de tokeni (configurabil, sub limita
   Groq); un singur flux activ per dispozitiv. Peste cotă, chatul trece pe modul pe reguli și spune asta.
-- Economie de tokeni: prompt de sistem scurt, 4 unelte cu scheme mici, istoric limitat,
-  `max_tokens` ~ 400.
+- Economie de tokeni: prompt de sistem scurt, 4 unelte cu scheme mici, ultimele 6 mesaje în istoric,
+  `max_tokens` 500. Schemele uneltelor nu au limite numerice (Groq le validează strict); codul le aplică.
+- „Cel mai bun interval” pentru ieșit afară ia în calcul doar orele 07–21 (ora României).
 
 ### Modul pe reguli (fără LLM)
 - Intenția: cuvinte-cheie pentru raport (fum, praf, groapă…) versus întrebare (cum e, unde, când,
@@ -457,7 +464,7 @@ Fiecare zi se încheie cu un deploy pe server.
 ## 14. Decizii deschise
 
 1. ~~Benzile EAQI exacte~~ — verificate pe pagina EEA (secțiunea 7).
-2. **Modelele Groq și OpenRouter** — joi, după un test în română cu tool calling.
+2. ~~Modelele Groq și OpenRouter~~ — alese și testate pe date reale (secțiunea 9).
 3. ~~GraphHopper vs Valhalla~~ — **GraphHopper**, confirmat de prototip (secțiunea 8).
 4. **Cum ajunge codul pe server** — tu faci push pe GitHub și LXC-ul face pull, sau copiem direct.
    Eu nu fac push.

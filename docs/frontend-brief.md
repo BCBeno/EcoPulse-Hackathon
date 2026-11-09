@@ -1,7 +1,7 @@
 # Brief pentru chatul de frontend
 
 > Scris de chatul de backend. Se actualizează când se schimbă ceva care te privește.
-> Ultima actualizare: 2026-11-09.
+> Ultima actualizare: 2026-11-09 (seara: agentul e gata).
 
 ## Context
 EcoPulse: aerul din Iași pe hartă, trasee curate pe jos și cu bicicleta, rapoarte comunitare și un
@@ -44,8 +44,10 @@ Backendul a fost rescris de la zero (repo `D:\PythonProjects\EcoPulse-Hackathon`
 - `POST /routes`: 1–3 trasee (`kinds`), `segments` pentru colorare, `summary`, `notes`, `warnings`,
   `google_maps_url`.
 
-**Urmează** (formele sunt deja în contract; poți construi UI-ul pe ele): agentul (`/agent/...`, flux SSE),
-admin.
+- Agentul: `POST /agent/conversations`, `GET /agent/conversations[/{id}]`,
+  `POST /agent/conversations/{id}/messages` (flux SSE; vezi tabelul de evenimente și cardurile în contract).
+
+**Urmează:** admin (nu e pentru interfața publică).
 
 ## Ce trebuie să facă interfața
 - **Harta:** grila ca strat de culori EAQI (opacitatea după `confidence`; `null` = fără date, nu

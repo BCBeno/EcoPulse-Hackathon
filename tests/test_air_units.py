@@ -222,3 +222,12 @@ def test_best_window_picks_longest_run_at_best_level():
     window = best_window([(start + timedelta(hours=i), level) for i, level in enumerate(levels)])
     assert window == (start + timedelta(hours=4), start + timedelta(hours=7), 2)
     assert best_window([(start, None)]) is None
+
+
+def test_best_window_skips_night_hours():
+    from zoneinfo import ZoneInfo
+
+    night = datetime(2026, 11, 10, 0, tzinfo=UTC)  # 02:00 in Iași
+    levels = [(night + timedelta(hours=i), 1 if i < 3 else 2) for i in range(12)]
+    start, _end, level = best_window(levels, ZoneInfo("Europe/Bucharest"))
+    assert level == 2 and start.astimezone(ZoneInfo("Europe/Bucharest")).hour == 7

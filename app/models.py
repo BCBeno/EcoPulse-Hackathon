@@ -1,6 +1,6 @@
 """Imports every table so `Base.metadata` is complete (used by Alembic and tests)."""
 
-from app.agent.models import LlmUsage
+from app.agent.models import Conversation, LlmUsage, Message
 from app.air.models import (
     GridSnapshot,
     Measurement,
@@ -17,10 +17,12 @@ from app.reports.models import Report, ReportDraft, ReportFlag, ReportVote
 
 __all__ = [
     "Base",
+    "Conversation",
     "Device",
     "GridSnapshot",
     "LlmUsage",
     "Measurement",
+    "Message",
     "ModelForecast",
     "OsmFeature",
     "PlaceCache",
