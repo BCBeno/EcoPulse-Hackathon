@@ -44,6 +44,10 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             "Contractul complet: docs/api-contract.md."
         ),
         lifespan=lifespan,
+        # Under /api so the same nginx route serves them in production.
+        docs_url=f"{API_PREFIX}/docs",
+        redoc_url=None,
+        openapi_url=f"{API_PREFIX}/openapi.json",
     )
     app.dependency_overrides[get_settings] = lambda: settings
     install_error_handlers(app)

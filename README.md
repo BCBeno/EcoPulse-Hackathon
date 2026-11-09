@@ -26,7 +26,7 @@ uv run python deploy/graphhopper/build_extract.py
 docker compose -f deploy/compose.dev.yaml up -d graphhopper
 ```
 
-API: <http://localhost:8000/api/v1>, documentație interactivă: <http://localhost:8000/docs>.
+API: <http://localhost:8000/api/v1>, documentație interactivă: <http://localhost:8000/api/v1/docs>.
 
 ## Verificări
 
