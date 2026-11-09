@@ -21,5 +21,19 @@ services:
       timeout: 3s
       retries: 20
 
+  graphhopper:
+    build: ./graphhopper
+    environment:
+      JAVA_OPTS: "-Xmx1g -Xms256m"
+    ports:
+      - "8989:8989"
+    volumes:
+      - ./graphhopper/data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fs http://localhost:8989/health || exit 1"]
+      interval: 10s
+      timeout: 3s
+      retries: 30
+
 volumes:
   dbdata:

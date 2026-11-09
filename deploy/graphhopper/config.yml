@@ -1,0 +1,43 @@
+graphhopper:
+  datareader.file: /data/iasi.osm.pbf
+  graph.location: /data/graph-cache
+  profiles:
+    - name: foot
+      custom_model_files: [foot.json]
+    - name: bike
+      custom_model_files: [bike.json]
+  # No CH/LM: every request runs in flexible mode, so EcoPulse can send a custom_model with
+  # polluted areas per request. The Iași graph is small enough for this to stay fast.
+  profiles_ch: []
+  profiles_lm: []
+  graph.encoded_values: >-
+    foot_access, foot_priority, foot_average_speed, foot_road_access,
+    bike_access, bike_priority, bike_average_speed, bike_road_access,
+    roundabout, hike_rating, mtb_rating, average_slope, country, road_class
+  # Motorways are never usable on foot or by bike.
+  import.osm.ignored_highways: motorway
+  prepare.min_network_size: 200
+  prepare.subnetworks.threads: 1
+  routing.snap_preventions_default: tunnel, bridge, ferry
+  routing.non_ch.max_waypoint_distance: 100000
+  routing.max_visited_nodes: 1000000
+  graph.dataaccess.default_type: RAM_STORE
+
+server:
+  application_connectors:
+    - type: http
+      port: 8989
+      bind_host: 0.0.0.0
+      max_request_header_size: 50k
+  request_log:
+    appenders: []
+  admin_connectors:
+    - type: http
+      port: 8990
+      bind_host: 0.0.0.0
+
+logging:
+  appenders:
+    - type: console
+      time_zone: UTC
+      log_format: "%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level %logger{36} - %msg%n"

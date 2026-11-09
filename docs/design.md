@@ -71,8 +71,9 @@ Internet ─► Cloudflare (bcbeno.me) ─► nginx-proxy-manager (LXC `infra`, 
   dacă e neprivilegiat).
 - **Backup:** `pg_dump` nocturn într-un volum montat de pe gazdă; păstrăm 7 zile.
 - **Loguri:** JSON pe stdout, rotite de Docker (`max-size`), cu stack trace complet la erori.
-- **Harta pentru GraphHopper:** extras Geofabrik România, tăiat cu `osmium` la zona Iașului plus o
-  margine de 5 km. Se reconstruiește săptămânal (sau manual).
+- **Harta pentru GraphHopper:** extras Geofabrik România (~330 MB), tăiat cu pyosmium la zona
+  Iașului plus o margine de 5 km (rezultă ~2 MB). Se reconstruiește săptămânal (sau manual) cu
+  `deploy/graphhopper/build_extract.py`, apoi se șterge `graph-cache` și se repornește containerul.
 
 ## 4. Stack backend
 
@@ -314,9 +315,18 @@ Fiecare sursă: un modul cu `fetch()` → `normalize()` → listă de înregistr
 - Linkul Google Maps conține până la 8 puncte intermediare luate de pe traseu, ca Google să urmeze
   aproximativ aceeași cale.
 
-**Riscul principal:** combinația `areas` + `alternative_route` nu e confirmată în documentație.
-Marți facem un prototip; dacă nu merge, folosim Valhalla cu `exclude_polygons` (evitare dură) și
-aceeași funcție de scor.
+**Prototip (2026-11-09) — confirmat.** GraphHopper 11.1, harta zonei Iași (32.100 noduri, 41.700
+muchii, ~360 MB RAM în container), traseu pe jos Gara → Tătărași:
+- fără penalizare: 3 trasee în ~400 ms (prima cerere), cel mai rapid trece 644 m printr-o zonă de
+  350 m rază de pe mijlocul lui;
+- cu `custom_model.areas` (prioritate × 0.1 în zonă) **și** `alternative_route`: 3 trasee în ~150 ms,
+  **0 m** prin zonă, cu 4,5–10 minute în plus;
+- pe bicicletă, aceeași cerere a dat un singur traseu (alternativele nu sunt garantate), deci
+  „Echilibrat” și „Curat” se cer separat, fiecare cu propriul `custom_model`.
+
+Harta se construiește din extrasul Geofabrik pentru România, tăiat cu pyosmium
+(`deploy/graphhopper/build_extract.py`). Overpass a picat la toate cele trei oglinzi în timpul
+testului, deci nu e potrivit pentru reconstruirea hărții.
 
 ## 9. Agentul AI
 
@@ -439,7 +449,7 @@ Fiecare zi se încheie cu un deploy pe server.
 
 1. **Benzile EAQI exacte** — de verificat cu raportul ETC HE 2024/17 (miercuri, înainte de grilă).
 2. **Modelele Groq și OpenRouter** — joi, după un test în română cu tool calling.
-3. **GraphHopper vs Valhalla** — marți, după prototip.
+3. ~~GraphHopper vs Valhalla~~ — **GraphHopper**, confirmat de prototip (secțiunea 8).
 4. **Cum ajunge codul pe server** — tu faci push pe GitHub și LXC-ul face pull, sau copiem direct.
    Eu nu fac push.
 5. **Gravitatea pe 3 niveluri** (mică / medie / mare) în loc de 1–5 — propunerea mea, mai ușor de

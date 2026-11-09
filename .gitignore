@@ -87,3 +87,6 @@ Thumbs.db
 ehthumbs.db
 Desktop.ini
 $RECYCLE.BIN/
+
+# GraphHopper data and graph cache
+deploy/graphhopper/data/

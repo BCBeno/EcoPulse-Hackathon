@@ -19,6 +19,7 @@ dependencies = [
 
 [dependency-groups]
 dev = [
+  "osmium>=4.3.2",
   "pytest>=8.4",
   "pytest-asyncio>=1.1",
   "ruff>=0.12",
