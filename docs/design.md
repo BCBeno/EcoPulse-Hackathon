@@ -283,16 +283,20 @@ Fiecare sursă: un modul cu `fetch()` → `normalize()` → listă de înregistr
 
 ### Candidați (GraphHopper, `POST /route`, `ch.disable=true`, profil `foot` sau `bike`)
 1. **Rapid:** fără `custom_model`, cu `algorithm=alternative_route` (până la 3 variante).
-2. **Echilibrat** și **Curat:** `custom_model` cu `areas` = poligoane din celulele grilei cu nivel
-   ≥ 3 (unite și simplificate, cu un plafon de vârfuri), plus cercurile rapoartelor active.
+2. **Echilibrat** și **Curat:** `custom_model` cu `areas` = poligoane din celulele grilei (unite și
+   simplificate, maximum 15 pe nivel), plus cercurile rapoartelor active și șantierele OSM (30 m).
+   Zonele de poluare sunt **relative la oraș** în acel moment, ca traseul să ocolească punctele
+   fierbinți chiar și când tot orașul e la același nivel EAQI:
+   `hot1` = PM2.5 ≥ max(percentila 75, mediana + 4) sau EAQI ≥ 4;
+   `hot2` = PM2.5 ≥ max(percentila 90, mediana + 8) sau EAQI ≥ 5.
    Reguli de `priority` (`multiply_by`):
 
 | Zonă | Echilibrat | Curat |
 |---|---|---|
-| nivel 3 | 0.85 | 0.6 |
-| nivel 4 | 0.6 | 0.3 |
-| nivel ≥ 5 | 0.35 | 0.1 |
+| `hot1` | 0.8 | 0.5 |
+| `hot2` | 0.55 | 0.25 |
 | raport care afectează aerul | 0.6 | 0.2 |
+| șantier OSM | 0.85 | 0.6 |
 | raport-obstacol | 0.2 | 0.05 |
 
 ### Scorul (același pentru toți candidații)
@@ -300,6 +304,10 @@ Fiecare sursă: un modul cu `fetch()` → `normalize()` → listă de înregistr
   porțiuni. Concentrația PM2.5 se ia din grila de la `plecare + timp scurs` (pentru plecare acum,
   grila „acum”).
 - `exposure_index = Σ PM2.5 × Δt` (µg·h/m³). Se compară doar între trasee cu același mod de deplasare.
+- Rapoartele active care afectează aerul nu sunt în grilă; în raza lor adaugă un echivalent PM2.5 după
+  gravitate (10 / 25 / 50 µg/m³). Fără asta, un traseu prin fum ar ieși „curat”: am văzut exact asta
+  în testul pe date reale, unde GraphHopper ocolea raportul, dar alegerea îl păstra pe cel rapid.
+- Pentru plecare mai târziu se folosește grila de la ora plecării (nu se schimbă pe parcursul drumului).
 - Mai calculăm: PM2.5 mediu ponderat cu timpul, nivelul maxim de pe traseu, minutele petrecute la
   nivel ≥ 4 și diferența față de cel mai rapid (`vs_fastest_pct`).
 - Porțiuni colorate: puncte consecutive cu același nivel EAQI sunt comasate în `segments`.

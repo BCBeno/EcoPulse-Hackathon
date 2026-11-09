@@ -35,7 +35,7 @@ HUMIDITY_NOTE = "Umiditate ridicată: senzorii ieftini pot supraestima particule
 MAX_REPORTS_ON_MAP = 500
 
 
-def _cache(request: Request) -> service.ForecastCache:
+def forecast_cache(request: Request) -> service.ForecastCache:
     if not hasattr(request.app.state, "forecast_cache"):
         request.app.state.forecast_cache = service.ForecastCache()
     return request.app.state.forecast_cache
@@ -171,7 +171,7 @@ async def map_data(
     at: AwareDatetime | None = None,
 ):
     now = datetime.now(UTC)
-    result = await service.grid_for(session, settings, _check_at(at, settings), _cache(request))
+    result = await service.grid_for(session, settings, _check_at(at, settings), forecast_cache(request))
     stations = await service.load_stations(session, now)
     weather = await service.weather_at(session, now)
     verdicts = service.assessments_for(stations, weather, now)
@@ -339,7 +339,7 @@ async def get_air_point(
     lon: Annotated[float, Query(ge=-180, le=180)],
     at: AwareDatetime | None = None,
 ) -> AirPoint:
-    return await air_point(session, settings, _cache(request), lat, lon, at)
+    return await air_point(session, settings, forecast_cache(request), lat, lon, at)
 
 
 # --- /air/forecast --------------------------------------------------------------------------------
@@ -414,4 +414,4 @@ async def get_air_forecast(
     lon: Annotated[float, Query(ge=-180, le=180)],
     hours: Annotated[int, Query(ge=1, le=72)] = 24,
 ) -> AirForecast:
-    return await air_forecast(session, settings, _cache(request), lat, lon, hours)
+    return await air_forecast(session, settings, forecast_cache(request), lat, lon, hours)

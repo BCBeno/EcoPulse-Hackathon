@@ -472,6 +472,40 @@
         "title": "EaqiOut",
         "type": "object"
       },
+      "Endpoint": {
+        "properties": {
+          "label": {
+            "anyOf": [
+              {
+                "maxLength": 120,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Label"
+          },
+          "lat": {
+            "maximum": 90.0,
+            "minimum": -90.0,
+            "title": "Lat",
+            "type": "number"
+          },
+          "lon": {
+            "maximum": 180.0,
+            "minimum": -180.0,
+            "title": "Lon",
+            "type": "number"
+          }
+        },
+        "required": [
+          "lat",
+          "lon"
+        ],
+        "title": "Endpoint",
+        "type": "object"
+      },
       "ErrorBody": {
         "properties": {
           "code": {
@@ -899,6 +933,61 @@
           "qa_flags"
         ],
         "title": "NearestSensor",
+        "type": "object"
+      },
+      "Place": {
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "neighbourhood",
+              "landmark",
+              "street",
+              "address",
+              "poi"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "location": {
+            "$ref": "#/components/schemas/LatLon"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "label",
+          "kind",
+          "location"
+        ],
+        "title": "Place",
+        "type": "object"
+      },
+      "PlaceList": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/Place"
+            },
+            "title": "Items",
+            "type": "array"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "title": "PlaceList",
         "type": "object"
       },
       "Pollutant": {
@@ -1370,6 +1459,267 @@
           "text_max"
         ],
         "title": "ReportRules",
+        "type": "object"
+      },
+      "ReverseOut": {
+        "properties": {
+          "label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Label"
+          }
+        },
+        "required": [
+          "label"
+        ],
+        "title": "ReverseOut",
+        "type": "object"
+      },
+      "RouteExposure": {
+        "properties": {
+          "avg_pm25": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Avg Pm25"
+          },
+          "index": {
+            "title": "Index",
+            "type": "number"
+          },
+          "max_eaqi_level": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Eaqi Level"
+          },
+          "minutes_poor_or_worse": {
+            "title": "Minutes Poor Or Worse",
+            "type": "number"
+          },
+          "vs_fastest_pct": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vs Fastest Pct"
+          }
+        },
+        "required": [
+          "index",
+          "avg_pm25",
+          "max_eaqi_level",
+          "minutes_poor_or_worse",
+          "vs_fastest_pct"
+        ],
+        "title": "RouteExposure",
+        "type": "object"
+      },
+      "RouteOut": {
+        "properties": {
+          "distance_m": {
+            "title": "Distance M",
+            "type": "integer"
+          },
+          "duration_s": {
+            "title": "Duration S",
+            "type": "integer"
+          },
+          "exposure": {
+            "$ref": "#/components/schemas/RouteExposure"
+          },
+          "geometry": {
+            "additionalProperties": true,
+            "title": "Geometry",
+            "type": "object"
+          },
+          "google_maps_url": {
+            "title": "Google Maps Url",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "kinds": {
+            "items": {
+              "enum": [
+                "cleanest",
+                "balanced",
+                "fastest"
+              ],
+              "type": "string"
+            },
+            "title": "Kinds",
+            "type": "array"
+          },
+          "reports_nearby": {
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "title": "Reports Nearby",
+            "type": "array"
+          },
+          "segments": {
+            "items": {
+              "$ref": "#/components/schemas/Segment"
+            },
+            "title": "Segments",
+            "type": "array"
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Warnings",
+            "type": "array"
+          }
+        },
+        "required": [
+          "id",
+          "kinds",
+          "distance_m",
+          "duration_s",
+          "geometry",
+          "exposure",
+          "segments",
+          "reports_nearby",
+          "warnings",
+          "google_maps_url"
+        ],
+        "title": "RouteOut",
+        "type": "object"
+      },
+      "RouteRequest": {
+        "properties": {
+          "depart_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Depart At"
+          },
+          "destination": {
+            "$ref": "#/components/schemas/Endpoint"
+          },
+          "mode": {
+            "default": "walk",
+            "enum": [
+              "walk",
+              "bike"
+            ],
+            "title": "Mode",
+            "type": "string"
+          },
+          "origin": {
+            "$ref": "#/components/schemas/Endpoint"
+          }
+        },
+        "required": [
+          "origin",
+          "destination"
+        ],
+        "title": "RouteRequest",
+        "type": "object"
+      },
+      "RoutesOut": {
+        "properties": {
+          "depart_at": {
+            "format": "date-time",
+            "title": "Depart At",
+            "type": "string"
+          },
+          "mode": {
+            "enum": [
+              "walk",
+              "bike"
+            ],
+            "title": "Mode",
+            "type": "string"
+          },
+          "notes": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Notes",
+            "type": "array"
+          },
+          "routes": {
+            "items": {
+              "$ref": "#/components/schemas/RouteOut"
+            },
+            "title": "Routes",
+            "type": "array"
+          },
+          "summary": {
+            "title": "Summary",
+            "type": "string"
+          }
+        },
+        "required": [
+          "depart_at",
+          "mode",
+          "routes",
+          "summary",
+          "notes"
+        ],
+        "title": "RoutesOut",
+        "type": "object"
+      },
+      "Segment": {
+        "properties": {
+          "eaqi_level": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Eaqi Level"
+          },
+          "from": {
+            "title": "From",
+            "type": "integer"
+          },
+          "to": {
+            "title": "To",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "from",
+          "to",
+          "eaqi_level"
+        ],
+        "title": "Segment",
         "type": "object"
       },
       "SensorOut": {
@@ -2062,6 +2412,141 @@
         "summary": "Map Data",
         "tags": [
           "air"
+        ]
+      }
+    },
+    "/api/v1/places/reverse": {
+      "get": {
+        "operationId": "reverse_api_v1_places_reverse_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "lat",
+            "required": true,
+            "schema": {
+              "maximum": 90,
+              "minimum": -90,
+              "title": "Lat",
+              "type": "number"
+            }
+          },
+          {
+            "in": "query",
+            "name": "lon",
+            "required": true,
+            "schema": {
+              "maximum": 180,
+              "minimum": -180,
+              "title": "Lon",
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReverseOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          }
+        },
+        "summary": "Reverse",
+        "tags": [
+          "places"
+        ]
+      }
+    },
+    "/api/v1/places/search": {
+      "get": {
+        "operationId": "search_api_v1_places_search_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "q",
+            "required": true,
+            "schema": {
+              "maxLength": 120,
+              "minLength": 2,
+              "title": "Q",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "lat",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maximum": 90,
+                  "minimum": -90,
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Lat"
+            }
+          },
+          {
+            "in": "query",
+            "name": "lon",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maximum": 180,
+                  "minimum": -180,
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Lon"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlaceList"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          }
+        },
+        "summary": "Search",
+        "tags": [
+          "places"
         ]
       }
     },
@@ -2923,6 +3408,67 @@
         "summary": "Vote",
         "tags": [
           "reports"
+        ]
+      }
+    },
+    "/api/v1/routes": {
+      "post": {
+        "operationId": "routes_api_v1_routes_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RouteRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoutesOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "summary": "Routes",
+        "tags": [
+          "routes"
         ]
       }
     }

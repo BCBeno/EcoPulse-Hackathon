@@ -9,8 +9,11 @@ from app.config import Settings, get_settings
 from app.db import create_engine, create_sessionmaker
 from app.devices.router import router as devices_router
 from app.errors import install_error_handlers
+from app.http import create_http_client
 from app.logs import configure_logging
+from app.places.router import router as places_router
 from app.reports.router import router as reports_router
+from app.routing.router import router as routing_router
 from app.security import RateLimiter
 from app.system.router import router as system_router
 
@@ -27,7 +30,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         app.state.engine = engine
         app.state.sessionmaker = create_sessionmaker(engine)
         app.state.limiter = RateLimiter()
+        app.state.http = create_http_client(settings)
         yield
+        await app.state.http.aclose()
         await engine.dispose()
 
     app = FastAPI(
@@ -53,7 +58,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.add_middleware(GZipMiddleware, minimum_size=1024)
 
     api = APIRouter(prefix=API_PREFIX)
-    for router in (system_router, devices_router, reports_router, air_router):
+    for router in (system_router, devices_router, reports_router, air_router, places_router, routing_router):
         api.include_router(router)
     app.include_router(api)
     return app

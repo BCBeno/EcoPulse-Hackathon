@@ -60,6 +60,10 @@ class Settings(BaseSettings):
     devices_per_hour_per_ip: int = Field(default=20, ge=1)
     reads_per_minute_per_ip: int = Field(default=120, ge=1)
     writes_per_minute_per_device: int = Field(default=20, ge=1)
+    geocode_per_minute_per_ip: int = Field(default=60, ge=1)
+    routes_per_minute_per_ip: int = Field(default=20, ge=1)
+
+    graphhopper_url: str = "http://localhost:8989"
 
     # Data sources. OpenAQ is skipped (status "not_configured") while the key is empty.
     openaq_api_key: str = ""

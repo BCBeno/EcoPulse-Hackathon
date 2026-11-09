@@ -12,6 +12,7 @@ from app.air.models import (
 )
 from app.db import Base
 from app.devices.models import Device
+from app.places.models import PlaceCache
 from app.reports.models import Report, ReportDraft, ReportFlag, ReportVote
 
 __all__ = [
@@ -22,6 +23,7 @@ __all__ = [
     "Measurement",
     "ModelForecast",
     "OsmFeature",
+    "PlaceCache",
     "Report",
     "ReportDraft",
     "ReportFlag",

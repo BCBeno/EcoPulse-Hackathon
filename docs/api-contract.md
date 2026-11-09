@@ -5,8 +5,8 @@
 > sursa exactă e [openapi.json](openapi.json) (generat), din care frontendul își generează tipurile.
 >
 > **Implementat:** sistem (`/health`, `/health/ready`, `/config`), dispozitive, rapoarte (inclusiv ciorne,
-> voturi, rezolvare, semnalări), `/map`, `/air/point`, `/air/forecast`.
-> **Urmează:** locuri, trasee, agent, admin.
+> voturi, rezolvare, semnalări), `/map`, `/air/point`, `/air/forecast`, `/places/search`, `/places/reverse`,
+> `POST /routes`. **Urmează:** agent, admin.
 
 ## Convenții
 
@@ -265,11 +265,12 @@ Frontendul face debounce de 300 ms. Doar în zona Iași.
 {
   "items": [
     {"id": "local:podu-ros", "name": "Podu Roș", "label": "Podu Roș, Iași",
-     "kind": "neighbourhood", "location": {"lat": 47.1536, "lon": 27.5876}}
+     "kind": "neighbourhood", "location": {"lat": 47.15056, "lon": 27.58651}}
   ]
 }
 ```
-`kind`: `neighbourhood` | `landmark` | `street` | `address` | `poi`.
+`kind`: `neighbourhood` | `landmark` | `street` | `address` | `poi`. Întâi vin locurile din lista curată a
+backendului (cartiere și repere), apoi rezultatele Photon (OSM). `id` începe cu `local:` sau `osm:`.
 
 ### `GET /places/reverse?lat=&lon=` 🔓
 `{"label": "Bulevardul Ștefan cel Mare și Sfânt, lângă Palas"}` sau `{"label": null}`.
@@ -323,7 +324,14 @@ Distanța în linie dreaptă între puncte trebuie să fie între 100 m și 30 k
 - `kinds` poate conține mai multe valori când traseele coincid (ex. `["fastest", "cleanest"]`).
 - `segments.from`/`to` sunt indici în `geometry.coordinates`.
 - `exposure.index` (µg·h/m³) se compară doar între traseele aceleiași cereri.
-- `warnings`, ex.: `"Trece pe lângă un raport activ de fum."`, `"Date puține pe o porțiune a traseului."`.
+- `warnings`, ex.: `"Trece pe lângă un raport activ: fum."`,
+  `"Date puține pe o porțiune a traseului: estimarea se bazează mai mult pe model."`.
+- `routes` are 1–3 elemente. Când aerul e similar, rămâne un singur traseu cu `kinds: ["fastest", "cleanest"]`;
+  frontendul afișează atunci `summary`.
+- `exposure.vs_fastest_pct` e `null` pentru traseul cel mai rapid.
+- În `exposure.index` intră și rapoartele active care afectează aerul (fum, praf etc.), ca un plus de
+  PM2.5 în raza lor (euristică, după gravitate).
+- `notes` (listă de texte) explică limitele, de ex. plecarea mai târziu sau lipsa datelor despre aer.
 
 ---
 

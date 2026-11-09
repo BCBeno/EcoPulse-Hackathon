@@ -1,0 +1,261 @@
+[
+ {
+  "id": "copou",
+  "name": "Copou",
+  "kind": "neighbourhood",
+  "aliases": [
+   "parcul copou"
+  ],
+  "lat": 47.18019,
+  "lon": 27.56568
+ },
+ {
+  "id": "tatarasi",
+  "name": "Tătărași",
+  "kind": "neighbourhood",
+  "aliases": [],
+  "lat": 47.16104,
+  "lon": 27.61135
+ },
+ {
+  "id": "podu-ros",
+  "name": "Podu Roș",
+  "kind": "neighbourhood",
+  "aliases": [
+   "podul ros"
+  ],
+  "lat": 47.15056,
+  "lon": 27.58651
+ },
+ {
+  "id": "podu-de-piatra",
+  "name": "Podu de Piatră",
+  "kind": "neighbourhood",
+  "aliases": [],
+  "lat": 47.15743,
+  "lon": 27.57511
+ },
+ {
+  "id": "nicolina",
+  "name": "Nicolina",
+  "kind": "neighbourhood",
+  "aliases": [],
+  "lat": 47.14886,
+  "lon": 27.57763
+ },
+ {
+  "id": "dacia",
+  "name": "Dacia",
+  "kind": "neighbourhood",
+  "aliases": [],
+  "lat": 47.16733,
+  "lon": 27.54965
+ },
+ {
+  "id": "alexandru-cel-bun",
+  "name": "Alexandru cel Bun",
+  "kind": "neighbourhood",
+  "aliases": [
+   "alexandru"
+  ],
+  "lat": 47.16384,
+  "lon": 27.56306
+ },
+ {
+  "id": "pacurari",
+  "name": "Păcurari",
+  "kind": "neighbourhood",
+  "aliases": [],
+  "lat": 47.17405,
+  "lon": 27.55788
+ },
+ {
+  "id": "canta",
+  "name": "Canta",
+  "kind": "neighbourhood",
+  "aliases": [],
+  "lat": 47.17319,
+  "lon": 27.54781
+ },
+ {
+  "id": "mircea-cel-batran",
+  "name": "Mircea cel Bătrân",
+  "kind": "neighbourhood",
+  "aliases": [
+   "mircea"
+  ],
+  "lat": 47.15488,
+  "lon": 27.56921
+ },
+ {
+  "id": "galata",
+  "name": "Galata",
+  "kind": "neighbourhood",
+  "aliases": [],
+  "lat": 47.1539,
+  "lon": 27.56138
+ },
+ {
+  "id": "frumoasa",
+  "name": "Frumoasa",
+  "kind": "neighbourhood",
+  "aliases": [],
+  "lat": 47.13726,
+  "lon": 27.58998
+ },
+ {
+  "id": "tudor-vladimirescu",
+  "name": "Tudor Vladimirescu",
+  "kind": "neighbourhood",
+  "aliases": [
+   "tudor"
+  ],
+  "lat": 47.156,
+  "lon": 27.60166
+ },
+ {
+  "id": "ticau",
+  "name": "Țicău",
+  "kind": "neighbourhood",
+  "aliases": [],
+  "lat": 47.1741,
+  "lon": 27.58537
+ },
+ {
+  "id": "sararie",
+  "name": "Sărărie",
+  "kind": "neighbourhood",
+  "aliases": [],
+  "lat": 47.18589,
+  "lon": 27.56747
+ },
+ {
+  "id": "bucium",
+  "name": "Bucium",
+  "kind": "neighbourhood",
+  "aliases": [],
+  "lat": 47.12427,
+  "lon": 27.62225
+ },
+ {
+  "id": "gara",
+  "name": "Gara Iași",
+  "kind": "landmark",
+  "aliases": [
+   "gara",
+   "gara de nord",
+   "gara mare"
+  ],
+  "lat": 47.16553,
+  "lon": 27.56987
+ },
+ {
+  "id": "piata-unirii",
+  "name": "Piața Unirii",
+  "kind": "landmark",
+  "aliases": [
+   "unirii",
+   "unire"
+  ],
+  "lat": 47.16669,
+  "lon": 27.58012
+ },
+ {
+  "id": "palas",
+  "name": "Palas",
+  "kind": "landmark",
+  "aliases": [
+   "palas mall"
+  ],
+  "lat": 47.15546,
+  "lon": 27.58688
+ },
+ {
+  "id": "iulius-mall",
+  "name": "Iulius Mall",
+  "kind": "landmark",
+  "aliases": [
+   "iulius"
+  ],
+  "lat": 47.15529,
+  "lon": 27.60574
+ },
+ {
+  "id": "universitate",
+  "name": "Universitatea Cuza",
+  "kind": "landmark",
+  "aliases": [
+   "uaic",
+   "cuza",
+   "universitate"
+  ],
+  "lat": 47.17425,
+  "lon": 27.57114
+ },
+ {
+  "id": "teatrul-national",
+  "name": "Teatrul Național",
+  "kind": "landmark",
+  "aliases": [
+   "teatru"
+  ],
+  "lat": 47.16344,
+  "lon": 27.5854
+ },
+ {
+  "id": "gradina-botanica",
+  "name": "Grădina Botanică",
+  "kind": "landmark",
+  "aliases": [
+   "botanica"
+  ],
+  "lat": 47.18513,
+  "lon": 27.55339
+ },
+ {
+  "id": "targu-cucu",
+  "name": "Târgu Cucu",
+  "kind": "landmark",
+  "aliases": [
+   "targu cucului"
+  ],
+  "lat": 47.16421,
+  "lon": 27.59092
+ },
+ {
+  "id": "hala-centrala",
+  "name": "Hala Centrală",
+  "kind": "landmark",
+  "aliases": [
+   "hala"
+  ],
+  "lat": 47.16188,
+  "lon": 27.59045
+ },
+ {
+  "id": "ciric",
+  "name": "Ciric",
+  "kind": "neighbourhood",
+  "aliases": [],
+  "lat": 47.16605,
+  "lon": 27.61792
+ },
+ {
+  "id": "aeroport",
+  "name": "Aeroportul Iași",
+  "kind": "landmark",
+  "aliases": [
+   "aeroport"
+  ],
+  "lat": 47.1799,
+  "lon": 27.62038
+ },
+ {
+  "id": "tehnopolis",
+  "name": "Tehnopolis",
+  "kind": "landmark",
+  "aliases": [],
+  "lat": 47.12164,
+  "lon": 27.57042
+ }
+]
