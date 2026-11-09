@@ -1,4 +1,5 @@
 import hashlib
+from datetime import UTC, datetime, timedelta
 from typing import Annotated, Literal
 
 from fastapi import APIRouter, Depends, Request, Response
@@ -7,6 +8,7 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.air import eaqi
+from app.air.ingest import last_success, latest_runs
 from app.config import Settings, get_settings
 from app.db import get_session
 from app.geo import LatLon
@@ -35,6 +37,16 @@ async def health() -> Health:
     return Health(status="ok")
 
 
+# How old each source's data may get before the service counts as degraded.
+SOURCE_MAX_AGE = {
+    "sensor_community": timedelta(minutes=30),
+    "cams": timedelta(hours=12),
+    "weather": timedelta(hours=6),
+    "openaq": timedelta(hours=3),
+    "osm": timedelta(hours=72),
+}
+
+
 @router.get("/health/ready", response_model=Ready)
 async def ready(session: Annotated[AsyncSession, Depends(get_session)], response: Response) -> Ready:
     checks: dict[str, str | dict] = {}
@@ -43,10 +55,29 @@ async def ready(session: Annotated[AsyncSession, Depends(get_session)], response
         checks["db"] = "ok"
     except Exception:
         checks["db"] = "down"
-    status = "ok" if checks["db"] == "ok" else "down"
-    if status == "down":
         response.status_code = 503
-    return Ready(status=status, checks=checks)
+        return Ready(status="down", checks=checks)
+    now = datetime.now(UTC)
+    runs, successes = await latest_runs(session), await last_success(session)
+    sources: dict[str, dict] = {}
+    degraded = False
+    for source, max_age in SOURCE_MAX_AGE.items():
+        run, success = runs.get(source), successes.get(source)
+        if run is not None and run.status == "skipped":
+            status = "not_configured"
+        elif success is None or now - success > max_age:
+            status = "stale" if success else "no_data"
+            degraded = True
+        else:
+            status = "ok"
+        sources[source] = {
+            "status": status,
+            "last_success": success.isoformat() if success else None,
+            "age_s": int((now - success).total_seconds()) if success else None,
+            "last_error": run.error if run is not None and run.status == "failed" else None,
+        }
+    checks["sources"] = sources
+    return Ready(status="degraded" if degraded else "ok", checks=checks)
 
 
 class BBox(BaseModel):

@@ -19,6 +19,135 @@
         "title": "AgentConfig",
         "type": "object"
       },
+      "AirForecast": {
+        "properties": {
+          "best_window": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/BestWindow"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "hourly": {
+            "items": {
+              "$ref": "#/components/schemas/ForecastHour"
+            },
+            "title": "Hourly",
+            "type": "array"
+          },
+          "limitation": {
+            "title": "Limitation",
+            "type": "string"
+          },
+          "location": {
+            "$ref": "#/components/schemas/LatLon"
+          },
+          "source": {
+            "title": "Source",
+            "type": "string"
+          }
+        },
+        "required": [
+          "location",
+          "hourly",
+          "best_window",
+          "source",
+          "limitation"
+        ],
+        "title": "AirForecast",
+        "type": "object"
+      },
+      "AirPoint": {
+        "properties": {
+          "at": {
+            "format": "date-time",
+            "title": "At",
+            "type": "string"
+          },
+          "confidence": {
+            "title": "Confidence",
+            "type": "number"
+          },
+          "eaqi": {
+            "$ref": "#/components/schemas/EaqiOut"
+          },
+          "kind": {
+            "enum": [
+              "now",
+              "forecast"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "limitation": {
+            "title": "Limitation",
+            "type": "string"
+          },
+          "location": {
+            "$ref": "#/components/schemas/LatLon"
+          },
+          "nearest_sensors": {
+            "items": {
+              "$ref": "#/components/schemas/NearestSensor"
+            },
+            "title": "Nearest Sensors",
+            "type": "array"
+          },
+          "notes": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Notes",
+            "type": "array"
+          },
+          "place_label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Place Label"
+          },
+          "pollutants": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/Pollutant"
+            },
+            "title": "Pollutants",
+            "type": "object"
+          },
+          "weather": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/WeatherOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "location",
+          "place_label",
+          "at",
+          "kind",
+          "eaqi",
+          "pollutants",
+          "confidence",
+          "nearest_sensors",
+          "weather",
+          "notes",
+          "limitation"
+        ],
+        "title": "AirPoint",
+        "type": "object"
+      },
       "AqiLevel": {
         "properties": {
           "advice": {
@@ -98,6 +227,31 @@
         "title": "BBox",
         "type": "object"
       },
+      "BestWindow": {
+        "properties": {
+          "eaqi_level": {
+            "title": "Eaqi Level",
+            "type": "integer"
+          },
+          "end": {
+            "format": "date-time",
+            "title": "End",
+            "type": "string"
+          },
+          "start": {
+            "format": "date-time",
+            "title": "Start",
+            "type": "string"
+          }
+        },
+        "required": [
+          "start",
+          "end",
+          "eaqi_level"
+        ],
+        "title": "BestWindow",
+        "type": "object"
+      },
       "City": {
         "properties": {
           "bbox": {
@@ -122,6 +276,43 @@
           "bbox"
         ],
         "title": "City",
+        "type": "object"
+      },
+      "ConstructionOut": {
+        "properties": {
+          "geometry": {
+            "additionalProperties": true,
+            "title": "Geometry",
+            "type": "object"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "source": {
+            "const": "osm",
+            "default": "osm",
+            "title": "Source",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "geometry",
+          "name"
+        ],
+        "title": "ConstructionOut",
         "type": "object"
       },
       "DeviceCreated": {
@@ -249,6 +440,38 @@
         "title": "DraftPublish",
         "type": "object"
       },
+      "EaqiOut": {
+        "properties": {
+          "dominant": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dominant"
+          },
+          "level": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Level"
+          }
+        },
+        "required": [
+          "level",
+          "dominant"
+        ],
+        "title": "EaqiOut",
+        "type": "object"
+      },
       "ErrorBody": {
         "properties": {
           "code": {
@@ -330,6 +553,145 @@
         "title": "FlagIn",
         "type": "object"
       },
+      "ForecastHour": {
+        "properties": {
+          "at": {
+            "format": "date-time",
+            "title": "At",
+            "type": "string"
+          },
+          "eaqi_level": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Eaqi Level"
+          },
+          "no2": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "No2"
+          },
+          "o3": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "O3"
+          },
+          "pm10": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pm10"
+          },
+          "pm25": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pm25"
+          }
+        },
+        "required": [
+          "at",
+          "eaqi_level",
+          "pm25",
+          "pm10",
+          "no2",
+          "o3"
+        ],
+        "title": "ForecastHour",
+        "type": "object"
+      },
+      "GridOut": {
+        "properties": {
+          "cols": {
+            "title": "Cols",
+            "type": "integer"
+          },
+          "d_lat": {
+            "title": "D Lat",
+            "type": "number"
+          },
+          "d_lon": {
+            "title": "D Lon",
+            "type": "number"
+          },
+          "layers": {
+            "additionalProperties": {
+              "items": {
+                "anyOf": [
+                  {
+                    "type": "integer"
+                  },
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "type": "array"
+            },
+            "title": "Layers",
+            "type": "object"
+          },
+          "rows": {
+            "title": "Rows",
+            "type": "integer"
+          },
+          "south": {
+            "title": "South",
+            "type": "number"
+          },
+          "valid_at": {
+            "format": "date-time",
+            "title": "Valid At",
+            "type": "string"
+          },
+          "west": {
+            "title": "West",
+            "type": "number"
+          }
+        },
+        "required": [
+          "valid_at",
+          "south",
+          "west",
+          "d_lat",
+          "d_lon",
+          "rows",
+          "cols",
+          "layers"
+        ],
+        "title": "GridOut",
+        "type": "object"
+      },
       "HTTPValidationError": {
         "properties": {
           "detail": {
@@ -408,6 +770,178 @@
           "poll_interval_s"
         ],
         "title": "MapConfig",
+        "type": "object"
+      },
+      "MapOut": {
+        "properties": {
+          "at": {
+            "format": "date-time",
+            "title": "At",
+            "type": "string"
+          },
+          "construction": {
+            "items": {
+              "$ref": "#/components/schemas/ConstructionOut"
+            },
+            "title": "Construction",
+            "type": "array"
+          },
+          "generated_at": {
+            "format": "date-time",
+            "title": "Generated At",
+            "type": "string"
+          },
+          "grid": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/GridOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "kind": {
+            "enum": [
+              "now",
+              "forecast"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "reports": {
+            "items": {
+              "$ref": "#/components/schemas/ReportOut"
+            },
+            "title": "Reports",
+            "type": "array"
+          },
+          "sensors": {
+            "items": {
+              "$ref": "#/components/schemas/SensorOut"
+            },
+            "title": "Sensors",
+            "type": "array"
+          },
+          "sources": {
+            "$ref": "#/components/schemas/SourcesSummary"
+          }
+        },
+        "required": [
+          "generated_at",
+          "at",
+          "kind",
+          "grid",
+          "sensors",
+          "reports",
+          "construction",
+          "sources"
+        ],
+        "title": "MapOut",
+        "type": "object"
+      },
+      "NearestSensor": {
+        "properties": {
+          "distance_m": {
+            "title": "Distance M",
+            "type": "integer"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "low_cost",
+              "official"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "observed_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Observed At"
+          },
+          "pm25": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pm25"
+          },
+          "qa_flags": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Qa Flags",
+            "type": "array"
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "distance_m",
+          "pm25",
+          "observed_at",
+          "qa_flags"
+        ],
+        "title": "NearestSensor",
+        "type": "object"
+      },
+      "Pollutant": {
+        "properties": {
+          "level": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Level"
+          },
+          "source": {
+            "anyOf": [
+              {
+                "const": "model",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source"
+          },
+          "unit": {
+            "const": "µg/m³",
+            "default": "µg/m³",
+            "title": "Unit",
+            "type": "string"
+          },
+          "value": {
+            "title": "Value",
+            "type": "number"
+          }
+        },
+        "required": [
+          "value",
+          "level"
+        ],
+        "title": "Pollutant",
         "type": "object"
       },
       "PublicConfig": {
@@ -514,6 +1048,25 @@
           "resets_at"
         ],
         "title": "Quota",
+        "type": "object"
+      },
+      "Reading": {
+        "properties": {
+          "observed_at": {
+            "format": "date-time",
+            "title": "Observed At",
+            "type": "string"
+          },
+          "value": {
+            "title": "Value",
+            "type": "number"
+          }
+        },
+        "required": [
+          "value",
+          "observed_at"
+        ],
+        "title": "Reading",
         "type": "object"
       },
       "Ready": {
@@ -819,6 +1372,76 @@
         "title": "ReportRules",
         "type": "object"
       },
+      "SensorOut": {
+        "properties": {
+          "eaqi_level": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Eaqi Level"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "low_cost",
+              "official"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "location": {
+            "$ref": "#/components/schemas/LatLon"
+          },
+          "provider": {
+            "title": "Provider",
+            "type": "string"
+          },
+          "qa_flags": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Qa Flags",
+            "type": "array"
+          },
+          "readings": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/Reading"
+            },
+            "title": "Readings",
+            "type": "object"
+          },
+          "status": {
+            "enum": [
+              "ok",
+              "stale",
+              "outlier"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "provider",
+          "kind",
+          "location",
+          "readings",
+          "eaqi_level",
+          "status",
+          "qa_flags"
+        ],
+        "title": "SensorOut",
+        "type": "object"
+      },
       "Severity": {
         "properties": {
           "label": {
@@ -835,6 +1458,51 @@
           "label"
         ],
         "title": "Severity",
+        "type": "object"
+      },
+      "SourcesSummary": {
+        "properties": {
+          "last_success": {
+            "additionalProperties": {
+              "format": "date-time",
+              "type": "string"
+            },
+            "title": "Last Success",
+            "type": "object"
+          },
+          "model": {
+            "title": "Model",
+            "type": "string"
+          },
+          "newest_reading_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Newest Reading At"
+          },
+          "official_count": {
+            "title": "Official Count",
+            "type": "integer"
+          },
+          "sensor_count": {
+            "title": "Sensor Count",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "sensor_count",
+          "official_count",
+          "newest_reading_at",
+          "model",
+          "last_success"
+        ],
+        "title": "SourcesSummary",
         "type": "object"
       },
       "ValidationError": {
@@ -948,6 +1616,74 @@
         ],
         "title": "VoteIn",
         "type": "object"
+      },
+      "WeatherOut": {
+        "properties": {
+          "humidity_pct": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Humidity Pct"
+          },
+          "precipitation_mm": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Precipitation Mm"
+          },
+          "temperature_c": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Temperature C"
+          },
+          "wind_dir_deg": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Wind Dir Deg"
+          },
+          "wind_speed_ms": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Wind Speed Ms"
+          }
+        },
+        "required": [
+          "temperature_c",
+          "humidity_pct",
+          "wind_speed_ms",
+          "wind_dir_deg",
+          "precipitation_mm"
+        ],
+        "title": "WeatherOut",
+        "type": "object"
       }
     }
   },
@@ -958,6 +1694,165 @@
   },
   "openapi": "3.1.0",
   "paths": {
+    "/api/v1/air/forecast": {
+      "get": {
+        "operationId": "get_air_forecast_api_v1_air_forecast_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "lat",
+            "required": true,
+            "schema": {
+              "maximum": 90,
+              "minimum": -90,
+              "title": "Lat",
+              "type": "number"
+            }
+          },
+          {
+            "in": "query",
+            "name": "lon",
+            "required": true,
+            "schema": {
+              "maximum": 180,
+              "minimum": -180,
+              "title": "Lon",
+              "type": "number"
+            }
+          },
+          {
+            "in": "query",
+            "name": "hours",
+            "required": false,
+            "schema": {
+              "default": 24,
+              "maximum": 72,
+              "minimum": 1,
+              "title": "Hours",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AirForecast"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          }
+        },
+        "summary": "Get Air Forecast",
+        "tags": [
+          "air"
+        ]
+      }
+    },
+    "/api/v1/air/point": {
+      "get": {
+        "operationId": "get_air_point_api_v1_air_point_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "lat",
+            "required": true,
+            "schema": {
+              "maximum": 90,
+              "minimum": -90,
+              "title": "Lat",
+              "type": "number"
+            }
+          },
+          {
+            "in": "query",
+            "name": "lon",
+            "required": true,
+            "schema": {
+              "maximum": 180,
+              "minimum": -180,
+              "title": "Lon",
+              "type": "number"
+            }
+          },
+          {
+            "in": "query",
+            "name": "at",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "At"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AirPoint"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          }
+        },
+        "summary": "Get Air Point",
+        "tags": [
+          "air"
+        ]
+      }
+    },
     "/api/v1/config": {
       "get": {
         "operationId": "public_config_api_v1_config_get",
@@ -1088,6 +1983,85 @@
         "summary": "Ready",
         "tags": [
           "system"
+        ]
+      }
+    },
+    "/api/v1/map": {
+      "get": {
+        "operationId": "map_data_api_v1_map_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "at",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "At"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MapOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "304": {
+            "description": "Nothing changed since the ETag in If-None-Match"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          }
+        },
+        "summary": "Map Data",
+        "tags": [
+          "air"
         ]
       }
     },

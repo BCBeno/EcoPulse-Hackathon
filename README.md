@@ -16,6 +16,14 @@ docker compose -f deploy/compose.dev.yaml up -d
 uv sync
 uv run alembic upgrade head
 uv run uvicorn app.main:app --reload
+uv run python -m app.worker   # într-un alt terminal: sincronizează sursele și grila
+```
+
+Harta pentru GraphHopper (o dată, apoi săptămânal):
+
+```bash
+uv run python deploy/graphhopper/build_extract.py
+docker compose -f deploy/compose.dev.yaml up -d graphhopper
 ```
 
 API: <http://localhost:8000/api/v1>, documentație interactivă: <http://localhost:8000/docs>.

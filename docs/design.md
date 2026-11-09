@@ -193,7 +193,8 @@ Valorile sunt o propunere; se pot ajusta fără migrare (stau în cod/config, nu
   (`low_cost`|`official`), `location`, `meta` (JSON: tip senzor, proprietar, licență), `first_seen_at`,
   `last_seen_at`. Unic (`provider`, `external_id`).
 - **measurements** — `sensor_id`, `parameter` (`pm25`, `pm10`, `no2`, `o3`, `so2`, `temperature`,
-  `humidity`), `value` (µg/m³, °C, %), `observed_at`, `retrieved_at`, `qa_flags` (listă).
+  `humidity`), `value` (µg/m³, °C, %), `observed_at`, `retrieved_at`. Semnalele QA nu se stochează:
+  se calculează la citire (depind de vecini și de momentul cererii).
   PK (`sensor_id`, `parameter`, `observed_at`). **Păstrate 7 zile.**
 - **model_forecasts** — CAMS Europe prin Open-Meteo, pe puncte fixe ale grilei CAMS din zona Iașului:
   `point_id`, `location`, `parameter` (`pm25`, `pm10`, `no2`, `o3`, `so2`), `valid_at`, `value`,
@@ -203,7 +204,7 @@ Valorile sunt o propunere; se pot ajusta fără migrare (stau în cod/config, nu
 - **grid_snapshots** — `id`, `valid_at`, `kind` (`now`|`forecast`), `computed_at`, `south`, `west`,
   `d_lat`, `d_lon`, `rows`, `cols`, `layers` (`pm25`, `pm10`, `no2`, `o3` ca float32 comprimat,
   `eaqi` și `confidence`), `inputs` (JSON: câți senzori, ce surse, vârste). Grila „acum” se
-  recalculează la fiecare 5 min; se păstrează 48 h. Grilele de prognoză se calculează la cerere și
+  recalculează la fiecare 5 min; se păstrează 6 h (istoricul nu e folosit). Grilele de prognoză se calculează la cerere și
   se țin în cache pe oră.
 - **osm_features** — `osm_id` (`way/123`), `kind` (`construction`), `geometry`, `tags`,
   `retrieved_at`. Șterse dacă nu mai apar 48 h.
@@ -235,7 +236,7 @@ Conversațiile se șterg după 30 de zile.
 | Open-Meteo vreme | temp., umiditate, vânt, precipitații | 60 min | context pentru agent și pentru filtrul de umiditate |
 | Overpass (OSM) | șantiere | 24 h | `highway=construction`, `landuse=construction`, `construction=*` |
 | Grila „acum” | calcul | 5 min, după Sensor.Community | |
-| Curățenie | retenție | zilnic, 03:00 | măsurători 7 zile, grile 48 h, conversații 30 de zile |
+| Curățenie | retenție | la 6 h | măsurători 7 zile, prognoze și vreme 24 h în urmă, grile 6 h, rulări 7 zile |
 
 Fiecare sursă: un modul cu `fetch()` → `normalize()` → listă de înregistrări tipizate, salvate cu
 `INSERT … ON CONFLICT DO UPDATE` în lot (nu o interogare pe rând). Starea fiecărei surse
@@ -253,13 +254,13 @@ Fiecare sursă: un modul cu `fetch()` → `normalize()` → listă de înregistr
 ### Indicele european (EAQI)
 - Șase niveluri: 1 Bun, 2 Acceptabil, 3 Moderat, 4 Slab, 5 Foarte slab, 6 Extrem de slab.
   Nivelul general = cel mai rău sub-indice dintre poluanții disponibili.
-- Benzile sunt cele **revizuite de EEA în 2024** (raportul ETC HE 2024/17, aliniate la ghidurile OMS
-  din 2021). Propunere de pornire, de verificat cu raportul înainte de implementare:
-  PM2.5 5/15/50/90/140, PM10 15/45/120/195/270, NO₂ 10/25/60/100/150, O₃ 60/100/120/160/180,
-  SO₂ 20/40/125/190/275 (µg/m³, limita superioară a nivelurilor 1–5).
-- EEA calculează PM pe medie mobilă de 24 h. Pentru hartă și trasee folosim **valoarea orară**, ca
-  harta să reacționeze la ce se întâmplă acum; în interfață scrie „nivel orientativ, pe valoarea
-  orară”. Nu folosim `european_aqi` gata calculat de Open-Meteo, ca să nu amestecăm versiuni de benzi.
+- Benzile sunt cele publicate de EEA pe <https://airindex.eea.europa.eu/AQI/index.html> (revizia din
+  raportul ETC HE 2024/17), **verificate 2026-11-09**: PM2.5 5/15/50/90/140, PM10 15/45/120/195/270,
+  NO₂ 10/25/60/100/150, O₃ 60/100/120/160/180, SO₂ 20/40/125/190/275 (µg/m³, limita superioară
+  inclusivă a nivelurilor 1–5; valoarea se rotunjește la întreg).
+- EEA definește indicele pe **concentrații orare**, deci și noi folosim valoarea orară. Nu folosim
+  `european_aqi` gata calculat de Open-Meteo, ca să nu amestecăm versiuni de benzi.
+- Culorile nu apar pe pagina EEA; folosim paleta EEA uzuală.
 
 ### Grila poluării
 - Zona: bbox-ul orașului `47.05,27.40,47.26,27.75`, celule de ~250 m, definite în grade
@@ -447,7 +448,7 @@ Fiecare zi se încheie cu un deploy pe server.
 
 ## 14. Decizii deschise
 
-1. **Benzile EAQI exacte** — de verificat cu raportul ETC HE 2024/17 (miercuri, înainte de grilă).
+1. ~~Benzile EAQI exacte~~ — verificate pe pagina EEA (secțiunea 7).
 2. **Modelele Groq și OpenRouter** — joi, după un test în română cu tool calling.
 3. ~~GraphHopper vs Valhalla~~ — **GraphHopper**, confirmat de prototip (secțiunea 8).
 4. **Cum ajunge codul pe server** — tu faci push pe GitHub și LXC-ul face pull, sau copiem direct.

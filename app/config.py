@@ -61,6 +61,15 @@ class Settings(BaseSettings):
     reads_per_minute_per_ip: int = Field(default=120, ge=1)
     writes_per_minute_per_device: int = Field(default=20, ge=1)
 
+    # Data sources. OpenAQ is skipped (status "not_configured") while the key is empty.
+    openaq_api_key: str = ""
+    sync_enabled: bool = True
+    sensor_community_every_min: int = Field(default=5, ge=5)
+    openaq_every_min: int = Field(default=60, ge=30)
+    cams_every_min: int = Field(default=180, ge=60)
+    weather_every_min: int = Field(default=60, ge=30)
+    osm_every_h: int = Field(default=24, ge=6)
+
     @field_validator("cors_origins", "trusted_proxies", mode="before")
     @classmethod
     def split_lists(cls, value):

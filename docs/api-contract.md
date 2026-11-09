@@ -5,7 +5,8 @@
 > sursa exactă e [openapi.json](openapi.json) (generat), din care frontendul își generează tipurile.
 >
 > **Implementat:** sistem (`/health`, `/health/ready`, `/config`), dispozitive, rapoarte (inclusiv ciorne,
-> voturi, rezolvare, semnalări). **Urmează:** hartă, aer, locuri, trasee, agent, admin.
+> voturi, rezolvare, semnalări), `/map`, `/air/point`, `/air/forecast`.
+> **Urmează:** locuri, trasee, agent, admin.
 
 ## Convenții
 
@@ -178,6 +179,11 @@ cele de acum.
 - Indexul celulei: `i = row * cols + col`; centrul celulei:
   `lat = south + (row + 0.5) * d_lat`, `lon = west + (col + 0.5) * d_lon`.
 - `null` = fără date în celula respectivă (nu „aer curat”).
+- `rows`/`cols` se iau din răspuns (acum 94 × 107); nu le fixa în frontend.
+- `eaqi` are valori întregi 1–6; `pm25` are o zecimală; `confidence` are două zecimale.
+- `at` din răspuns e momentul grilei (stabil între două recalculări), ca ETag-ul să rămână același.
+- `sources.last_success` dă ultima sincronizare reușită a fiecărei surse.
+- Stațiile care măsoară doar vremea (fără particule) nu apar în `sensors`.
 - `kind`: `now` | `forecast`. La `forecast`, lista `sensors` e aceeași, dar frontendul ar trebui să o
   atenueze vizual.
 
