@@ -4,7 +4,7 @@
 > [api-contract.md](api-contract.md). Chatul de frontend citește ambele fișiere de aici
 > (`D:\PythonProjects\EcoPulse-Hackathon\docs\`). Contractul se schimbă **doar prin chatul de backend**.
 >
-> Stare: **propunere, în așteptarea aprobării** · Început: 2026-11-09 · Termen: vineri 2026-11-13
+> Stare: **aprobat 2026-11-09** · Termen: vineri 2026-11-13
 > Echipa: Beno + Claude (backend și frontend în chaturi separate).
 
 ---
@@ -81,7 +81,7 @@ Internet ─► Cloudflare (bcbeno.me) ─► nginx-proxy-manager (LXC `infra`, 
 | Limbaj | Python 3.13 | e instalat local; toate bibliotecile au wheel-uri |
 | Dependențe | `uv` + `uv.lock` | instalare rapidă și reproductibilă |
 | Web | FastAPI + Pydantic v2 | modele de răspuns → OpenAPI → tipuri TS |
-| DB | PostgreSQL 17 + PostGIS, SQLAlchemy 2.1 async, `psycopg` 3, GeoAlchemy2 | un singur driver pentru app (async) și migrări (sync) |
+| DB | PostgreSQL 17 + PostGIS, SQLAlchemy 2.1 async, `asyncpg`, GeoAlchemy2 | `asyncpg` merge și pe Windows (psycopg async nu merge cu bucla implicită de pe Windows); Alembic rulează tot async |
 | Migrări | Alembic, de la prima zi | fără `create_all` la pornire |
 | Geometrie | Shapely 2, pyproj (UTM 35N, EPSG:32635), NumPy | calcule metrice corecte, grilă rapidă |
 | HTTP extern | httpx async, client comun, timeout și reîncercări | |
@@ -140,8 +140,10 @@ Logica pură (EAQI, grilă, expunere, reguli) nu atinge baza de date, ca să fie
 
 ## 6. Modelul de date
 
-ID-uri UUID (v7, ordonate în timp). Toate orele sunt `timestamptz` în UTC. Locațiile sunt
-`geography(Point, 4326)`; poligoanele și liniile `geometry(…, 4326)`. Index GiST pe toate.
+ID-uri UUID (v7, ordonate în timp). Toate orele sunt `timestamptz` în UTC. Toate geometriile sunt
+`geometry(…, 4326)` cu index GiST; distanțele în metri se calculează cu cast la `geography`.
+Valorile închise (categorie, stare etc.) sunt `varchar` cu `CHECK`, nu enum-uri PostgreSQL (migrări
+mai simple).
 
 ### Identitate
 - **devices** — `id`, `token_hash` (SHA-256 al token-ului opac, unic), `role` (`user`|`admin`),

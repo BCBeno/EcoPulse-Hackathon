@@ -1,8 +1,11 @@
 # EcoPulse — contractul API (v1)
 
 > Contractul dintre backend și frontend. Deciziile și motivele sunt în [design.md](design.md).
-> Stare: **propunere** · Se schimbă doar prin chatul de backend. După implementare, sursa exactă
-> devine `docs/openapi.json` (generat), din care frontendul își generează tipurile.
+> Stare: **aprobat 2026-11-09** · Se schimbă doar prin chatul de backend. Pentru ce e deja implementat,
+> sursa exactă e [openapi.json](openapi.json) (generat), din care frontendul își generează tipurile.
+>
+> **Implementat:** sistem (`/health`, `/health/ready`, `/config`), dispozitive, rapoarte (inclusiv ciorne,
+> voturi, rezolvare, semnalări). **Urmează:** hartă, aer, locuri, trasee, agent, admin.
 
 ## Convenții
 
@@ -338,8 +341,8 @@ Distanța în linie dreaptă între puncte trebuie să fie între 100 m și 30 k
   "viewer": {"is_author": false, "my_vote": null, "can_vote": true, "can_resolve": false}
 }
 ```
-`status`: `active` | `expired` | `resolved` (cele `hidden` nu apar public). `viewer` apare doar dacă
-cererea are token. Eticheta categoriei se ia din `/config`.
+`status`: `active` | `expired` | `resolved` (cele `hidden` nu apar public). `viewer` e completat doar
+dacă cererea are token; altfel e `null`. Eticheta categoriei se ia din `/config`.
 
 ### `GET /reports?status=active&category=&south=&west=&north=&east=&limit=&cursor=` 🔓
 `{"items": [Report], "next_cursor": null}`. Implicit: `status=active`, tot orașul.

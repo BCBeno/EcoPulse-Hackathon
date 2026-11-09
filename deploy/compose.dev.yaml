@@ -1,0 +1,25 @@
+# Local development services. Run from the repository root:
+#   docker compose -f deploy/compose.dev.yaml up -d
+name: ecopulse-dev
+
+services:
+  db:
+    image: postgis/postgis:17-3.5
+    environment:
+      POSTGRES_USER: ecopulse
+      POSTGRES_PASSWORD: ecopulse
+      POSTGRES_DB: ecopulse
+    ports:
+      - "5433:5432"
+    volumes:
+      - dbdata:/var/lib/postgresql/data
+      # Mount the single file so the image's own PostGIS init script stays in place.
+      - ./initdb/01-test-db.sql:/docker-entrypoint-initdb.d/01-test-db.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ecopulse -d ecopulse"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+volumes:
+  dbdata:
