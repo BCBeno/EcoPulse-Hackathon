@@ -11,7 +11,7 @@ set -euo pipefail
 
 HOST="${ECOPULSE_HOST:-root@192.168.0.27}"
 KEY="${ECOPULSE_KEY:-$HOME/.ssh/ecopulse_deploy}"
-DIR="/opt/ecopulse"
+DIR="/opt/ecopulse-v1"  # the v0 stack lives in /opt/ecopulse (project "ecopulse"): never touch it
 SSH=(ssh -i "$KEY" -o StrictHostKeyChecking=accept-new "$HOST")
 SCP=(scp -q -i "$KEY")
 

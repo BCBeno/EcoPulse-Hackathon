@@ -1,7 +1,7 @@
-# Production stack on the EcoPulse LXC (/opt/ecopulse). Only `web` is exposed (port 80);
+# Production stack on the EcoPulse LXC (/opt/ecopulse-v1; the v0 stack in /opt/ecopulse is separate). Only `web` is exposed (port 80);
 # nginx-proxy-manager on the infra LXC forwards ecopulse.bcbeno.me here.
 #   docker compose -f deploy/compose.yaml --env-file deploy/.env.production up -d --build
-name: ecopulse
+name: ecopulse-v1
 
 x-logging: &logging
   driver: json-file
