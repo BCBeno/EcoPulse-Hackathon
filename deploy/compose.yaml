@@ -38,7 +38,8 @@ services:
   graphhopper:
     build: ./graphhopper
     environment:
-      JAVA_OPTS: "-Xmx1g -Xms256m"
+      # The Iași graph needs ~360 MB; the LXC has 2 GB for the whole stack.
+      JAVA_OPTS: "-Xmx640m -Xms128m"
     volumes:
       - ./graphhopper/data:/data
     healthcheck:
