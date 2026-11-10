@@ -287,3 +287,37 @@ async def test_routes_with_small_construction_polygons(client, session, fake_gh)
         "/routes", json={"origin": {"lat": 47.16, "lon": 27.58}, "destination": {"lat": 47.16, "lon": 27.60}}
     )
     assert response.status_code == 200, response.text
+
+
+def one_route_graphhopper(request: httpx.Request) -> httpx.Response:
+    return httpx.Response(200, json={"paths": [gh_path(47.160, 20)]})
+
+
+async def test_single_route_through_smoke_is_not_called_clean(client, app, alice):
+    await client.post(
+        "/reports",
+        json={
+            "category": "smoke",
+            "severity": 3,
+            "description": "Fum gros.",
+            "location": {"lat": 47.160, "lon": 27.59},
+        },
+        headers=alice,
+    )
+    original = app.state.http
+    app.state.http = httpx.AsyncClient(transport=httpx.MockTransport(one_route_graphhopper))
+    try:
+        body = (
+            await client.post(
+                "/routes",
+                json={"origin": {"lat": 47.16, "lon": 27.58}, "destination": {"lat": 47.16, "lon": 27.60}},
+            )
+        ).json()
+    finally:
+        await app.state.http.aclose()
+        app.state.http = original
+    assert [r["kinds"] for r in body["routes"]] == [["fastest", "cleanest"]]
+    assert (
+        body["summary"]
+        == "Nu am găsit un ocol mai curat într-un timp rezonabil; traseul trece pe lângă: fum."
+    )

@@ -106,3 +106,16 @@ Regenerați tipurile (`npm run api:types`): s-au schimbat `GridOut`, `Constructi
 - Traseele pot avea avertismentul „Trece pe lângă trafic intens: …” și nota „Traficul în timp real contează
   doar pentru plecările din următoarea oră.”
 - Până punem cheia HERE, `GET /traffic` răspunde `status: "not_configured"` cu listă goală.
+
+## Observație de la backend (2026-11-10): traseele din cache
+
+O captură cu Palas → Copou arăta un singur traseu „cel mai rapid și cel mai curat” care trecea prin raportul
+de fum. Backendul, întrebat din nou cu aceeași cerere, dă 3 trasee (cel mai curat: −69% particule, +6 min).
+Cauza probabilă: traseul era ținut în cache de dinainte să existe raportul (sau de la un server API pornit
+cu cod mai vechi). Cerere: cheia de cache a traseelor să includă ETag-ul de la `/map` (sau un TTL de ~1 minut),
+ca un raport nou să recalculeze traseele afișate. Backendul nu mai scrie „Aerul e similar…” când singurul
+traseu trece printr-un raport de aer; scrie „Nu am găsit un ocol mai curat într-un timp rezonabil; traseul
+trece pe lângă: fum.”
+
+Baza locală are rapoarte de test („fwefsssefes”, „gdrgd”, „mare este”); nu ajung pe server, care pornește
+cu o bază nouă.

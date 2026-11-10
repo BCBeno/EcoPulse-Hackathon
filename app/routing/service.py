@@ -265,7 +265,7 @@ async def plan(
         depart_at=depart,
         mode=request.mode,
         routes=routes,
-        summary=_summary(chosen, fastest),
+        summary=_summary(chosen, fastest, reports),
         notes=_notes(grid, traffic_applied=abs(depart - now) <= TRAFFIC_WINDOW),
     )
 
@@ -317,9 +317,22 @@ def _route_out(
     )
 
 
-def _summary(chosen: list[Candidate], fastest: Candidate) -> str:
+def _summary(chosen: list[Candidate], fastest: Candidate, reports: list[Report]) -> str:
     cleanest = next(c for c in chosen if "cleanest" in c.kinds)
     if cleanest is fastest:
+        polluting = sorted(
+            {
+                CATEGORIES[r.category].label.lower()
+                for r in _reports_near(fastest.path, reports)
+                if CATEGORIES[r.category].affects in ("air", "air_obstacle")
+            }
+        )
+        if polluting:
+            # Never call the air "similar" while the only route crosses a reported source.
+            return (
+                f"Nu am găsit un ocol mai curat într-un timp rezonabil; traseul trece pe lângă: "
+                f"{', '.join(polluting)}."
+            )
         return "Aerul e similar pe toate variantele: traseul cel mai rapid e și cel mai curat."
     gain = (
         round((1 - cleanest.exposure.index / fastest.exposure.index) * 100) if fastest.exposure.index else 0
