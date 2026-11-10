@@ -297,3 +297,10 @@ def test_groq_models_become_separate_providers():
         make_settings(groq_api_key="k", groq_model="a, b", openrouter_api_key="", openrouter_model="")
     )
     assert [p.name for p in chain] == ["groq:a", "groq:b"]
+
+
+def test_every_tool_has_an_executor():
+    from app.agent import tools
+
+    names = {tool["function"]["name"] for tool in tools.TOOLS}
+    assert names == set(tools.EXECUTORS) == set(tools.ALLOWED_ARGS) == set(tools.STATUS)

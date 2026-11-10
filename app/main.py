@@ -18,6 +18,7 @@ from app.reports.router import router as reports_router
 from app.routing.router import router as routing_router
 from app.security import RateLimiter
 from app.system.router import router as system_router
+from app.traffic.router import router as traffic_router
 
 API_PREFIX = "/api/v1"
 
@@ -72,6 +73,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         places_router,
         routing_router,
         agent_router,
+        traffic_router,
     ):
         api.include_router(router)
     app.include_router(api)

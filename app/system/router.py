@@ -22,6 +22,7 @@ from app.reports.categories import (
     CategoryId,
     IconKey,
 )
+from app.traffic import service as traffic
 
 router = APIRouter(tags=["system"])
 
@@ -47,6 +48,7 @@ SOURCE_MAX_AGE = {
     "weather": timedelta(hours=6),
     "openaq": timedelta(hours=3),
     "osm": timedelta(hours=72),
+    "here_traffic": timedelta(minutes=45),
 }
 
 
@@ -114,6 +116,13 @@ class ReportCategoryOut(BaseModel):
     radius_m: int
 
 
+class TrafficLevelOut(BaseModel):
+    key: Literal["free", "moderate", "heavy", "jammed", "closed"]
+    label: str
+    color: str
+    min_jam: float
+
+
 class Severity(BaseModel):
     value: int
     label: str
@@ -149,6 +158,7 @@ class PublicConfig(BaseModel):
     city: City
     aqi_levels: list[AqiLevel]
     aqi_note: str
+    traffic_levels: list[TrafficLevelOut]
     report_categories: list[ReportCategoryOut]
     severities: list[Severity]
     flag_reasons: list[Labelled]
@@ -172,6 +182,7 @@ def build_config(settings: Settings) -> PublicConfig:
         ),
         aqi_levels=[AqiLevel(**vars(level)) for level in eaqi.LEVELS],
         aqi_note=eaqi.NOTE,
+        traffic_levels=[TrafficLevelOut(**vars(level)) for level in traffic.LEVELS],
         report_categories=[ReportCategoryOut(**vars(c)) for c in CATEGORIES.values()],
         severities=[Severity(value=v, label=label) for v, label in SEVERITIES.items()],
         flag_reasons=[Labelled(id=key, label=label) for key, label in FLAG_REASONS.items()],

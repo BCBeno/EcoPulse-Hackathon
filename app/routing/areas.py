@@ -21,8 +21,22 @@ MIN_AREA_DEG2 = 0.00225 * 0.0033 * 2  # ignore isolated single cells
 
 # multiply_by per tier and route kind (1 = no penalty).
 FACTORS = {
-    "balanced": {"hot1": 0.8, "hot2": 0.55, "report_air": 0.6, "construction": 0.85, "obstacle": 0.2},
-    "cleanest": {"hot1": 0.5, "hot2": 0.25, "report_air": 0.2, "construction": 0.6, "obstacle": 0.05},
+    "balanced": {
+        "hot1": 0.8,
+        "hot2": 0.55,
+        "report_air": 0.6,
+        "construction": 0.85,
+        "traffic": 0.85,
+        "obstacle": 0.2,
+    },
+    "cleanest": {
+        "hot1": 0.5,
+        "hot2": 0.25,
+        "report_air": 0.2,
+        "construction": 0.6,
+        "traffic": 0.6,
+        "obstacle": 0.05,
+    },
 }
 
 

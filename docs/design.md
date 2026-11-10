@@ -25,7 +25,7 @@ Pentru pietonii și bicicliștii din Iași:
    către autor, semnalare abuz.
 5. **Șantierele din OpenStreetMap** ca strat pe hartă și ca sursă de penalizare la rutare.
 
-**Nu intră în v1:** voce (amânată), trafic estimat, trasee salvate, lucrări oficiale din RSS,
+**Nu intră în v1:** voce (amânată), trafic estimat (dar intră traficul real HERE, vezi secțiunea 8b), trasee salvate, lucrări oficiale din RSS,
 motocicletă, conturi cu email/parolă.
 
 ## 2. Principii
@@ -336,6 +336,21 @@ muchii, ~360 MB RAM în container), traseu pe jos Gara → Tătărași:
 Harta se construiește din extrasul Geofabrik pentru România, tăiat cu pyosmium
 (`deploy/graphhopper/build_extract.py`). Overpass a picat la toate cele trei oglinzi în timpul
 testului, deci nu e potrivit pentru reconstruirea hărții.
+
+## 8b. Trafic în timp real (HERE Traffic v7)
+
+- Adăugat pe 2026-11-10 la cererea utilizatorului. O cerere `GET data.traffic.hereapi.com/v7/flow`
+  cu `in=bbox:V,S,E,N` și `locationReferencing=shape` acoperă tot orașul; workerul o face la 10 minute
+  (~4.300 de cereri pe lună). Cheia: `HERE_API_KEY`. Limita gratuită nu e publicată oficial; o verificăm
+  pe cheie.
+- Viteze în m/s (le convertim în km/h); `jamFactor` 0–10 (10 = închis); `confidence` > 0,7 = timp real.
+- Tabelul `traffic_segments` ține doar ultima imagine (se înlocuiește la fiecare sincronizare); datele
+  mai vechi de 45 de minute nu se folosesc.
+- Niveluri: Fluent < 3 ≤ Moderat < 6 ≤ Aglomerat < 8 ≤ Blocat < 10 = Închis.
+- Rutare (doar pentru plecări în următoarea oră): drumurile aglomerate sau blocate, cu 30 m de o parte și
+  de alta, sunt penalizate (echilibrat × 0,85, curat × 0,6) și adaugă PM2.5 echivalent în scor (+3
+  aglomerat, +6 blocat; euristică documentată, nu măsurătoare).
+- Agentul are unealta `get_traffic` (drumurile aglomerate în jurul unui loc sau în tot orașul).
 
 ## 9. Agentul AI
 

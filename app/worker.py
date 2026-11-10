@@ -52,6 +52,7 @@ async def main() -> None:
         (ingest.weather, {"minutes": settings.weather_every_min}, 5),
         (sensors_then_grid, {"minutes": settings.sensor_community_every_min}, 10),
         (ingest.openaq, {"minutes": settings.openaq_every_min}, 15),
+        (ingest.traffic, {"minutes": settings.traffic_every_min}, 20),
         (ingest.osm, {"hours": settings.osm_every_h}, 30),
         (ingest.cleanup, {"hours": 6}, 60),
     ]

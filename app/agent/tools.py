@@ -28,6 +28,7 @@ from app.reports.categories import CATEGORIES, SEVERITIES
 from app.reports.models import Report, ReportDraft
 from app.reports.service import active_filter, to_out
 from app.routing.service import Endpoint, RouteRequest, plan
+from app.traffic import service as traffic
 
 HERE_WORDS = {"aici", "here", "langa mine", "unde sunt", "locatia mea", "pozitia mea", "aproape", "in zona"}
 SELECTED_WORDS = {"punctul selectat", "punct selectat", "selectat", "pe harta"}
@@ -91,6 +92,19 @@ TOOLS: list[dict] = [
     {
         "type": "function",
         "function": {
+            "name": "get_traffic",
+            "description": "Real-time traffic on the main roads: congested roads near a place or city-wide.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "place": {"type": "string", "description": "Place name, 'aici', or omit for city"}
+                },
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
             "name": "draft_report",
             "description": "Prepare a public report of a problem the user observes. The user confirms it "
             "with a button; never claim it is published.",
@@ -122,6 +136,7 @@ STATUS = {
     "get_air": "Verific calitatea aerului…",
     "plan_routes": "Caut traseele…",
     "find_reports": "Caut rapoartele din zonă…",
+    "get_traffic": "Verific traficul…",
     "draft_report": "Pregătesc raportul…",
 }
 
@@ -324,6 +339,46 @@ async def find_reports(
     return ToolResult(summary, [card])
 
 
+async def get_traffic(ctx: AgentContext, place: str | None = None):
+    now = datetime.now(UTC)
+    where = await locate(ctx, place, fallback_center=False) if place else None
+    near = (where.point.lat, where.point.lon, 1500) if where else None
+    moderate = next(level for level in traffic.LEVELS if level.key == "moderate")
+    rows = await traffic.current(ctx.session, now, min_jam=moderate.min_jam, near=near)
+    if not rows and not await traffic.current(ctx.session, now, near=near):
+        return ToolResult({"error": "Nu am date de trafic în timp real acum."})
+    segments = [
+        {
+            "id": row.id,
+            "geometry": row.geometry,
+            "description": row.description,
+            "level": traffic.level(row.jam_factor, row.closed).key,
+            "jam_factor": round(row.jam_factor, 1),
+            "speed_kmh": row.speed_kmh,
+            "free_flow_kmh": row.free_flow_kmh,
+        }
+        for row in rows[:12]
+    ]
+    named: dict[str, dict] = {}
+    for row in rows:
+        name = row.description or "drum fără nume"
+        if name not in named:
+            named[name] = {
+                "road": name,
+                "level": traffic.level(row.jam_factor, row.closed).label,
+                "speed_kmh": row.speed_kmh,
+                "usual_kmh": row.free_flow_kmh,
+            }
+    summary = {
+        "area": where.label if where and where.label else ("în jurul tău" if where else "tot orașul"),
+        "time": now.astimezone(ctx.settings.tz).strftime("%H:%M"),
+        "congested_roads": list(named.values())[:6],
+        "all_fluent": not rows,
+    }
+    card = {"type": "traffic", "center": where.point.model_dump() if where else None, "segments": segments}
+    return ToolResult(summary, [card])
+
+
 PERSONAL_DATA = [
     re.compile(r"\b(?:\+?40|0)7\d{2}[\s.-]?\d{3}[\s.-]?\d{3}\b"),  # Romanian mobile numbers
     re.compile(r"\b[\w.+-]+@[\w-]+\.[\w.]+\b"),  # e-mail addresses
@@ -400,12 +455,14 @@ EXECUTORS = {
     "get_air": get_air,
     "plan_routes": plan_routes,
     "find_reports": find_reports,
+    "get_traffic": get_traffic,
     "draft_report": draft_report,
 }
 ALLOWED_ARGS = {
     "get_air": {"place", "when", "forecast_hours"},
     "plan_routes": {"origin", "destination", "mode", "when"},
     "find_reports": {"place", "category", "radius_m"},
+    "get_traffic": {"place"},
     "draft_report": {"category", "severity", "description", "place"},
 }
 

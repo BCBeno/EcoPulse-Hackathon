@@ -14,6 +14,7 @@ TARGET = ROOT / "deploy" / ".env.production"
 COPIED = (
     "ADMIN_API_KEY",
     "OPENAQ_API_KEY",
+    "HERE_API_KEY",
     "GROQ_API_KEY",
     "GROQ_MODEL",
     "OPENROUTER_API_KEY",

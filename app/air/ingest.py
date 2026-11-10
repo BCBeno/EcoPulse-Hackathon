@@ -25,6 +25,8 @@ from app.air.providers.records import ForecastValue, OsmRecord, StationReading, 
 from app.config import Settings
 from app.geo import point_wkt
 from app.http import SourceError
+from app.traffic import provider as here_traffic
+from app.traffic import service as traffic_service
 
 log = logging.getLogger("ecopulse.ingest")
 
@@ -243,6 +245,17 @@ class Ingestor:
             return await store_osm(session, await osm.fetch(self.http, self.settings.city_bbox), now)
 
         return await self.run("osm", job)
+
+    async def traffic(self) -> SourceRun:
+        async def job(session, now):
+            if not self.settings.here_api_key:
+                raise SourceNotConfigured
+            observed_at, segments = await here_traffic.fetch(
+                self.http, self.settings.here_api_key, self.settings.city_bbox
+            )
+            return await traffic_service.store(session, observed_at, segments, now)
+
+        return await self.run("here_traffic", job)
 
     async def cleanup(self) -> SourceRun:
         return await self.run("cleanup", cleanup)

@@ -3,6 +3,7 @@
 import asyncio
 import json
 import math
+from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from typing import Literal
 from urllib.parse import urlencode
@@ -23,14 +24,18 @@ from app.reports.categories import CATEGORIES
 from app.reports.models import Report
 from app.reports.service import active_filter
 from app.routing import areas, graphhopper
-from app.routing.exposure import REPORT_BOOST, Boost, Candidate, choose, measure, segments
+from app.routing.exposure import REPORT_BOOST, AreaBoost, Boost, Candidate, choose, measure, segments
 from app.routing.graphhopper import GhPath
+from app.traffic import service as traffic
 
 MIN_DISTANCE_M = 100
 MAX_DISTANCE_M = 30_000
 MAX_WAYPOINTS = 8
 LOW_CONFIDENCE_WARNING = 0.5
 REPORT_MARGIN_M = 25
+# Real-time traffic only matters for trips starting about now.
+TRAFFIC_WINDOW = timedelta(hours=1)
+MAX_TRAFFIC_WARNINGS = 2
 TRAVEL_MODES = {"walk": "walking", "bike": "bicycling"}
 
 
@@ -148,6 +153,35 @@ async def _penalties(
     return tiers, reports
 
 
+@dataclass
+class CongestedRoad:
+    polygons: list
+    extra: float
+    label: str
+
+
+async def _congestion(session: AsyncSession, now: datetime, depart: datetime) -> list[CongestedRoad]:
+    if abs(depart - now) > TRAFFIC_WINDOW:
+        return []
+    heavy = next(level for level in traffic.LEVELS if level.key == "heavy")
+    roads = []
+    for row in await traffic.current(session, now, min_jam=heavy.min_jam):
+        key = traffic.level(row.jam_factor, row.closed).key
+        polygons = areas.buffered(shape(row.geometry), traffic.NEAR_ROAD_M)
+        extra = traffic.POLLUTION_BOOST.get(key, traffic.POLLUTION_BOOST["jammed"])
+        roads.append(CongestedRoad(polygons, extra, row.description or "un drum aglomerat"))
+    return roads
+
+
+def _roads_near(path: GhPath, roads: list[CongestedRoad]) -> list[str]:
+    line = LineString(path.coordinates)
+    names: list[str] = []
+    for road in roads:
+        if road.label not in names and any(polygon.intersects(line) for polygon in road.polygons):
+            names.append(road.label)
+    return names
+
+
 def _boost(report: Report) -> Boost:
     where = to_latlon(report.location)
     return Boost(where.lat, where.lon, report.radius_m, REPORT_BOOST[report.severity])
@@ -177,6 +211,8 @@ async def plan(
     depart = validate(request, settings, now)
     grid = await air.grid_for(session, settings, None if request.depart_at is None else depart, cache)
     tiers, reports = await _penalties(session, grid, now)
+    roads = await _congestion(session, now, depart)
+    tiers["traffic"] = areas.union_tier([p for road in roads for p in road.polygons])
     origin = (request.origin.lat, request.origin.lon)
     destination = (request.destination.lat, request.destination.lon)
     calls = [
@@ -207,21 +243,29 @@ async def plan(
     boosts = tuple(
         _boost(report) for report in reports if CATEGORIES[report.category].affects in ("air", "air_obstacle")
     )
-    candidates = [Candidate(path, measure(path, grid.spec, grid.layers, boosts)) for path in paths]
+    area_boosts = tuple(AreaBoost(p, road.extra) for road in roads for p in road.polygons)
+    candidates = [
+        Candidate(path, measure(path, grid.spec, grid.layers, boosts, area_boosts)) for path in paths
+    ]
     chosen = choose(candidates)
     fastest = next(c for c in chosen if "fastest" in c.kinds)
-    routes = [_route_out(f"r{i + 1}", c, fastest, reports, request.mode) for i, c in enumerate(chosen)]
+    routes = [_route_out(f"r{i + 1}", c, fastest, reports, roads, request.mode) for i, c in enumerate(chosen)]
     return RoutesOut(
         depart_at=depart,
         mode=request.mode,
         routes=routes,
         summary=_summary(chosen, fastest),
-        notes=_notes(grid),
+        notes=_notes(grid, traffic_applied=abs(depart - now) <= TRAFFIC_WINDOW),
     )
 
 
 def _route_out(
-    route_id: str, candidate: Candidate, fastest: Candidate, reports: list[Report], mode: str
+    route_id: str,
+    candidate: Candidate,
+    fastest: Candidate,
+    reports: list[Report],
+    roads: list[CongestedRoad],
+    mode: str,
 ) -> RouteOut:
     exposure, path = candidate.exposure, candidate.path
     near = _reports_near(path, reports)
@@ -229,6 +273,8 @@ def _route_out(
     for report in near:
         if CATEGORIES[report.category].affects in ("air", "air_obstacle"):
             warnings.append(f"Trece pe lângă un raport activ: {CATEGORIES[report.category].label.lower()}.")
+    for name in _roads_near(path, roads)[:MAX_TRAFFIC_WARNINGS]:
+        warnings.append(f"Trece pe lângă trafic intens: {name}.")
     if exposure.low_confidence_share > LOW_CONFIDENCE_WARNING:
         warnings.append("Date puține pe o porțiune a traseului: estimarea se bazează mai mult pe model.")
     vs_fastest = (
@@ -273,12 +319,12 @@ def _summary(chosen: list[Candidate], fastest: Candidate) -> str:
     return f"Traseul cel mai curat are cu {gain} % mai puține particule, pentru {minutes} în plus."
 
 
-def _notes(grid: air.GridResult) -> list[str]:
+def _notes(grid: air.GridResult, *, traffic_applied: bool) -> list[str]:
     notes = []
     if grid.kind == "forecast":
-        notes.append(
-            "Pentru plecare mai târziu, scorul folosește prognoza CAMS corectată cu senzorii de acum."
-        )
+        notes.append("Pentru plecare mai târziu, scorul folosește prognoza calității aerului.")
+    if not traffic_applied:
+        notes.append("Traficul în timp real contează doar pentru plecările din următoarea oră.")
     if "pm25" not in grid.layers:
         notes.append("Nu avem date despre aer acum; traseele sunt ordonate doar după timp.")
     return notes

@@ -13,7 +13,8 @@ from dataclasses import dataclass, field
 from itertools import pairwise
 
 import numpy as np
-from shapely.geometry import LineString
+from shapely.geometry import LineString, Point
+from shapely.prepared import prep
 
 from app.air import eaqi
 from app.air.grid import GridSpec, sample
@@ -33,6 +34,14 @@ class Boost:
     lat: float
     lon: float
     radius_m: float
+    extra: float
+
+
+@dataclass(frozen=True)
+class AreaBoost:
+    """Extra PM2.5-equivalent inside a polygon (lon/lat), e.g. along a congested road."""
+
+    polygon: object
     extra: float
 
 
@@ -59,7 +68,11 @@ def _length_m(a: tuple[float, float], b: tuple[float, float]) -> float:
 
 
 def measure(
-    path: GhPath, spec: GridSpec, layers: dict[str, np.ndarray], boosts: tuple[Boost, ...] = ()
+    path: GhPath,
+    spec: GridSpec,
+    layers: dict[str, np.ndarray],
+    boosts: tuple[Boost, ...] = (),
+    area_boosts: tuple[AreaBoost, ...] = (),
 ) -> Exposure:
     pm25 = layers.get("pm25")
     levels_layer = layers.get("eaqi")
@@ -67,6 +80,7 @@ def measure(
     dose = known_time = low_conf_time = poor_time = 0.0
     total_time = sum(path.segment_s) or 1.0
     max_level = None
+    prepared = [(prep(area.polygon), area.extra) for area in area_boosts]
     for (a, b), seconds in zip(pairwise(path.coordinates), path.segment_s, strict=True):
         pieces = max(1, math.ceil(_length_m(a, b) / STEP_M))
         for k in range(pieces):
@@ -77,6 +91,9 @@ def measure(
             level = sample(spec, levels_layer, lat, lon) if levels_layer is not None else None
             conf = sample(spec, confidence, lat, lon) if confidence is not None else 0.0
             extra = sum(b.extra for b in boosts if _length_m((lon, lat), (b.lon, b.lat)) <= b.radius_m)
+            if prepared:
+                here = Point(lon, lat)
+                extra += sum(value for area, value in prepared if area.contains(here))
             if value is not None or extra:
                 dose += ((value or 0.0) + extra) * dt
                 known_time += dt

@@ -12,6 +12,7 @@ from app.places.service import Place
 from app.reports.categories import CategoryId
 from app.reports.schemas import ReportOut
 from app.routing.service import RouteRequest, RoutesOut
+from app.traffic.router import TrafficSegmentOut
 
 
 class ReportDraftCard(BaseModel):
@@ -52,8 +53,15 @@ class PlacesCard(BaseModel):
     items: list[Place]
 
 
+class TrafficCard(BaseModel):
+    type: Literal["traffic"] = "traffic"
+    center: LatLon | None
+    segments: list[TrafficSegmentOut]
+
+
 Card = Annotated[
-    ReportDraftCard | RoutesCard | AirCard | ReportsCard | PlacesCard, Field(discriminator="type")
+    ReportDraftCard | RoutesCard | AirCard | ReportsCard | PlacesCard | TrafficCard,
+    Field(discriminator="type"),
 ]
 
 

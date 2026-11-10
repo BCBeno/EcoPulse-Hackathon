@@ -14,6 +14,7 @@ from app.db import Base
 from app.devices.models import Device
 from app.places.models import PlaceCache
 from app.reports.models import Report, ReportDraft, ReportFlag, ReportVote
+from app.traffic.models import TrafficSegment
 
 __all__ = [
     "Base",
@@ -32,5 +33,6 @@ __all__ = [
     "ReportVote",
     "Sensor",
     "SourceRun",
+    "TrafficSegment",
     "WeatherHour",
 ]

@@ -6,7 +6,7 @@
 >
 > **Implementat:** sistem (`/health`, `/health/ready`, `/config`), dispozitive, rapoarte (inclusiv ciorne,
 > voturi, rezolvare, semnalări), `/map`, `/air/point`, `/air/forecast`, `/places/search`, `/places/reverse`,
-> `POST /routes`, agentul (`/agent/...`). **Urmează:** admin.
+> `POST /routes`, agentul (`/agent/...`), `GET /traffic`. **Urmează:** admin.
 
 ## Convenții
 
@@ -90,6 +90,13 @@ Tot ce are nevoie frontendul ca să nu dubleze constante.
     {"level": 6, "key": "extremely_poor", "label": "Extrem de slab", "color": "#7D2181", "advice": "…"}
   ],
   "aqi_note": "Nivel orientativ, calculat pe valoarea orară.",
+  "traffic_levels": [
+    {"key": "free", "label": "Fluent", "color": "#3BA55C", "min_jam": 0.0},
+    {"key": "moderate", "label": "Moderat", "color": "#E8B300", "min_jam": 3.0},
+    {"key": "heavy", "label": "Aglomerat", "color": "#E8590C", "min_jam": 6.0},
+    {"key": "jammed", "label": "Blocat", "color": "#C92A2A", "min_jam": 8.0},
+    {"key": "closed", "label": "Închis", "color": "#5F0F0F", "min_jam": 10.0}
+  ],
   "report_categories": [
     {"id": "smoke", "label": "Fum", "icon": "smoke", "affects": "air",
      "duration_h": 6, "radius_m": 400}
@@ -337,7 +344,32 @@ Distanța în linie dreaptă între puncte trebuie să fie între 100 m și 30 k
 - `exposure.vs_fastest_pct` e `null` pentru traseul cel mai rapid.
 - În `exposure.index` intră și rapoartele active care afectează aerul (fum, praf etc.), ca un plus de
   PM2.5 în raza lor (euristică, după gravitate).
+- Drumurile cu trafic `heavy` sau mai rău (doar pentru plecări în următoarea oră) sunt penalizate la traseele
+  curat/echilibrat și adaugă un mic plus de PM2.5 în scor; avertisment: `"Trece pe lângă trafic intens: <drum>."`.
 - `notes` (listă de texte) explică limitele, de ex. plecarea mai târziu sau lipsa datelor despre aer.
+
+---
+
+## Trafic
+
+### `GET /traffic` 🔓 (ETag)
+Traficul în timp real pe drumurile principale (HERE Traffic, actualizat la 10 minute). Strat separat de
+`/map`, ca harta să rămână ușoară: cereți-l doar când stratul e vizibil, cu `If-None-Match`.
+```json
+{
+  "status": "ok",
+  "observed_at": "2026-11-10T08:00:00Z",
+  "segments": [
+    {"id": "…", "geometry": {"type": "LineString", "coordinates": [[27.585, 47.16], [27.59, 47.16]]},
+     "description": "Bulevardul Ștefan cel Mare și Sfânt", "level": "jammed", "jam_factor": 8.4,
+     "speed_kmh": 9.0, "free_flow_kmh": 40.0}
+  ],
+  "attribution": "Date de trafic: HERE"
+}
+```
+- `status`: `ok` | `not_configured` (fără cheie HERE) | `no_data` (date mai vechi de 45 de minute).
+- `level` și culorile vin din `/config.traffic_levels`; `description` poate lipsi.
+- Atribuirea „Date de trafic: HERE” trebuie afișată când stratul e vizibil.
 
 ---
 
@@ -484,6 +516,8 @@ de stream: dacă e epuizată, chatul primește răspuns pe reguli, cu `engine: "
 {"type": "reports", "center": {"lat": …, "lon": …}, "items": [ /* Report */ ]}
 
 {"type": "places", "query": "gara", "items": [ /* Place */ ]}
+
+{"type": "traffic", "center": {"lat": …, "lon": …} | null, "segments": [ /* TrafficSegment */ ]}
 ```
 - `location_source`: `place` | `gps` | `map` | `none`.
 - `report_draft.status`: `pending` | `published` | `cancelled`. La `GET /agent/conversations/{id}` statusul e

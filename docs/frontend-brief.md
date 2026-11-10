@@ -97,3 +97,12 @@ prin `VITE_API_URL` (implicit `/api/v1` în producție).
 
 Regenerați tipurile (`npm run api:types`): s-au schimbat `GridOut`, `ConstructionOut`, `SensorOut`, `RouteOut.geometry`,
 `PublicConfig`, `ReportCreate` și s-au adăugat schemele agentului.
+
+## Nou: traficul în timp real (2026-11-10)
+
+- `GET /traffic` (ETag): segmentele de drum cu `level`, viteză și viteza obișnuită; strat separat, cerut doar
+  când e vizibil. Culorile și etichetele: `/config.traffic_levels`. Atribuire obligatorie: „Date de trafic: HERE”.
+- Agentul are cardul nou `traffic` (`TrafficCard`).
+- Traseele pot avea avertismentul „Trece pe lângă trafic intens: …” și nota „Traficul în timp real contează
+  doar pentru plecările din următoarea oră.”
+- Până punem cheia HERE, `GET /traffic` răspunde `status: "not_configured"` cu listă goală.

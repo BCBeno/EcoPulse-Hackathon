@@ -325,7 +325,8 @@
                 "places": "#/components/schemas/PlacesCard",
                 "report_draft": "#/components/schemas/ReportDraftCard",
                 "reports": "#/components/schemas/ReportsCard",
-                "routes": "#/components/schemas/RoutesCard"
+                "routes": "#/components/schemas/RoutesCard",
+                "traffic": "#/components/schemas/TrafficCard"
               },
               "propertyName": "type"
             },
@@ -344,6 +345,9 @@
               },
               {
                 "$ref": "#/components/schemas/PlacesCard"
+              },
+              {
+                "$ref": "#/components/schemas/TrafficCard"
               }
             ],
             "title": "Data"
@@ -1398,7 +1402,8 @@
                   "places": "#/components/schemas/PlacesCard",
                   "report_draft": "#/components/schemas/ReportDraftCard",
                   "reports": "#/components/schemas/ReportsCard",
-                  "routes": "#/components/schemas/RoutesCard"
+                  "routes": "#/components/schemas/RoutesCard",
+                  "traffic": "#/components/schemas/TrafficCard"
                 },
                 "propertyName": "type"
               },
@@ -1417,6 +1422,9 @@
                 },
                 {
                   "$ref": "#/components/schemas/PlacesCard"
+                },
+                {
+                  "$ref": "#/components/schemas/TrafficCard"
                 }
               ]
             },
@@ -1749,12 +1757,20 @@
             },
             "title": "Severities",
             "type": "array"
+          },
+          "traffic_levels": {
+            "items": {
+              "$ref": "#/components/schemas/TrafficLevelOut"
+            },
+            "title": "Traffic Levels",
+            "type": "array"
           }
         },
         "required": [
           "city",
           "aqi_levels",
           "aqi_note",
+          "traffic_levels",
           "report_categories",
           "severities",
           "flag_reasons",
@@ -2752,6 +2768,188 @@
           "data"
         ],
         "title": "TextDeltaEvent",
+        "type": "object"
+      },
+      "TrafficCard": {
+        "properties": {
+          "center": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/LatLon"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "segments": {
+            "items": {
+              "$ref": "#/components/schemas/TrafficSegmentOut"
+            },
+            "title": "Segments",
+            "type": "array"
+          },
+          "type": {
+            "const": "traffic",
+            "default": "traffic",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "center",
+          "segments"
+        ],
+        "title": "TrafficCard",
+        "type": "object"
+      },
+      "TrafficLevelOut": {
+        "properties": {
+          "color": {
+            "title": "Color",
+            "type": "string"
+          },
+          "key": {
+            "enum": [
+              "free",
+              "moderate",
+              "heavy",
+              "jammed",
+              "closed"
+            ],
+            "title": "Key",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "min_jam": {
+            "title": "Min Jam",
+            "type": "number"
+          }
+        },
+        "required": [
+          "key",
+          "label",
+          "color",
+          "min_jam"
+        ],
+        "title": "TrafficLevelOut",
+        "type": "object"
+      },
+      "TrafficOut": {
+        "properties": {
+          "attribution": {
+            "title": "Attribution",
+            "type": "string"
+          },
+          "observed_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Observed At"
+          },
+          "segments": {
+            "items": {
+              "$ref": "#/components/schemas/TrafficSegmentOut"
+            },
+            "title": "Segments",
+            "type": "array"
+          },
+          "status": {
+            "enum": [
+              "ok",
+              "not_configured",
+              "no_data"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "status",
+          "observed_at",
+          "segments",
+          "attribution"
+        ],
+        "title": "TrafficOut",
+        "type": "object"
+      },
+      "TrafficSegmentOut": {
+        "properties": {
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "free_flow_kmh": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Free Flow Kmh"
+          },
+          "geometry": {
+            "$ref": "#/components/schemas/GeoLineString"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "jam_factor": {
+            "title": "Jam Factor",
+            "type": "number"
+          },
+          "level": {
+            "enum": [
+              "free",
+              "moderate",
+              "heavy",
+              "jammed",
+              "closed"
+            ],
+            "title": "Level",
+            "type": "string"
+          },
+          "speed_kmh": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Speed Kmh"
+          }
+        },
+        "required": [
+          "id",
+          "geometry",
+          "description",
+          "level",
+          "jam_factor",
+          "speed_kmh",
+          "free_flow_kmh"
+        ],
+        "title": "TrafficSegmentOut",
         "type": "object"
       },
       "ValidationError": {
@@ -4631,6 +4829,30 @@
         "summary": "Routes",
         "tags": [
           "routes"
+        ]
+      }
+    },
+    "/api/v1/traffic": {
+      "get": {
+        "operationId": "traffic_api_v1_traffic_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrafficOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "304": {
+            "description": "Nothing changed since the ETag in If-None-Match"
+          }
+        },
+        "summary": "Traffic",
+        "tags": [
+          "traffic"
         ]
       }
     }

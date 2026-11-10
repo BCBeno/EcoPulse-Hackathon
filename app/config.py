@@ -85,6 +85,9 @@ class Settings(BaseSettings):
     cams_every_min: int = Field(default=180, ge=60)
     weather_every_min: int = Field(default=60, ge=30)
     osm_every_h: int = Field(default=24, ge=6)
+    # HERE Traffic v7 (real-time flow). Empty key = no traffic layer.
+    here_api_key: str = ""
+    traffic_every_min: int = Field(default=10, ge=5)
 
     @field_validator("cors_origins", "trusted_proxies", mode="before")
     @classmethod
