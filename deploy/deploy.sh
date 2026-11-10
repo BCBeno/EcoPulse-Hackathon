@@ -40,4 +40,6 @@ if [ -n "${WEB_DIST:-}" ]; then
 fi
 
 echo "==> docker compose up"
-"${SSH[@]}" "cd $DIR && docker compose -f deploy/compose.yaml --env-file deploy/.env.production up -d --build --remove-orphans && docker compose -f deploy/compose.yaml --env-file deploy/.env.production ps"
+COMPOSE="docker compose -f deploy/compose.yaml --env-file deploy/.env.production"
+# nginx.conf is a bind mount: reload it explicitly, since an unchanged container is not recreated.
+"${SSH[@]}" "cd $DIR && $COMPOSE up -d --build --remove-orphans && $COMPOSE exec -T web nginx -s reload && $COMPOSE ps"
