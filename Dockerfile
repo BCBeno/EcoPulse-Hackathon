@@ -10,7 +10,8 @@ COPY alembic.ini ./
 COPY migrations ./migrations
 COPY app ./app
 
-RUN useradd --create-home --uid 10001 ecopulse && chown -R ecopulse /app
+# Files stay owned by root and are only read at runtime: no slow `chown -R` over the venv.
+RUN useradd --create-home --uid 10001 ecopulse
 USER ecopulse
 ENV PATH="/app/.venv/bin:$PATH"
 EXPOSE 8000
