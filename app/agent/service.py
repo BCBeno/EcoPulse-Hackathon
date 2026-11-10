@@ -28,6 +28,8 @@ from app.reports.models import ReportDraft
 log = logging.getLogger("ecopulse.agent")
 
 MAX_TOOL_ROUNDS = 3
+EMPTY_REPLY_NUDGE = "Răspunde acum utilizatorului, pe scurt, în text simplu, folosind datele de mai sus."
+EMPTY_REPLY_FALLBACK = "Nu am reușit să formulez un răspuns acum. Încearcă din nou, te rog."
 HISTORY_MESSAGES = 6
 TRACE_CHARS = 300
 MAX_ACCURACY_M = 1000
@@ -194,6 +196,20 @@ async def llm_turn(
         turn.tokens_out += completion.tokens_out
         turn.requests += 1
         if not completion.tool_calls:
+            if not turn.text.strip() and round_index < MAX_TOOL_ROUNDS:
+                # An empty answer (e.g. the budget went to reasoning): ask once more, text only.
+                messages.append({"role": "system", "content": EMPTY_REPLY_NUDGE})
+                async for item in client.stream(messages, None):
+                    if isinstance(item, str):
+                        turn.text += item
+                        yield event("text.delta", {"text": item})
+                    else:
+                        turn.tokens_in += item.tokens_in
+                        turn.tokens_out += item.tokens_out
+                        turn.requests += 1
+            if not turn.text.strip():
+                turn.text = EMPTY_REPLY_FALLBACK
+                yield event("text.delta", {"text": EMPTY_REPLY_FALLBACK})
             return
         messages.append(
             {

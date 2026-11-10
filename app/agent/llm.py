@@ -13,7 +13,8 @@ from app.config import Settings
 
 log = logging.getLogger("ecopulse.llm")
 
-MAX_TOKENS = 500
+# Reasoning models spend part of this on hidden reasoning before any text.
+MAX_TOKENS = 1000
 # Any API failure (rate limit, outage, rejected tool arguments mid-stream...) moves on to the next
 # provider, as long as nothing has been streamed to the user yet.
 FALLBACK_ERRORS = (openai.APIError,)
@@ -131,6 +132,9 @@ class LlmClient:
             "stream": True,
             "stream_options": {"include_usage": True},
         }
+        if "gpt-oss" in provider.model:
+            # Without this, long hidden reasoning can use the whole budget and leave an empty reply.
+            request["reasoning_effort"] = "low"
         if tools:
             request["tools"] = tools
             request["tool_choice"] = "auto"

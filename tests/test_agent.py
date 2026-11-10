@@ -304,3 +304,15 @@ def test_every_tool_has_an_executor():
 
     names = {tool["function"]["name"] for tool in tools.TOOLS}
     assert names == set(tools.EXECUTORS) == set(tools.ALLOWED_ARGS) == set(tools.STATUS)
+
+
+async def test_empty_reply_is_retried_then_replaced(client, alice, use_llm):
+    llm = use_llm(ScriptedLlm("", "Aerul e bun acum."))
+    chat = await conversation(client, alice)
+    events = await send(client, alice, chat, "salut")
+    assert text_of(events).strip() == "Aerul e bun acum."
+    assert llm.calls[1][-1]["role"] == "system"
+
+    use_llm(ScriptedLlm("", ""))
+    events = await send(client, alice, chat, "salut din nou")
+    assert text_of(events) == "Nu am reușit să formulez un răspuns acum. Încearcă din nou, te rog."

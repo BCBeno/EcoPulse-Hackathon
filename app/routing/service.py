@@ -187,9 +187,9 @@ def _roads_near(path: GhPath, roads: list[CongestedRoad]) -> list[str]:
             continue
         seen.add(road.label)
         if road.closed:
-            warnings.append(f"{road.label} e închis circulației auto (posibil lucrări).")
+            warnings.append(f"{road.label.rstrip('.')} e închis circulației auto (posibil lucrări).")
         else:
-            warnings.append(f"Trece pe lângă trafic intens: {road.label}.")
+            warnings.append(f"Trece pe lângă trafic intens: {road.label.rstrip('.')}.")
     return warnings
 
 
