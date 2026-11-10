@@ -36,7 +36,9 @@ fi
 
 if [ -n "${WEB_DIST:-}" ]; then
   echo "==> Frontend from $WEB_DIST"
-  tar -C "$WEB_DIST" -cf - . | "${SSH[@]}" "rm -rf $DIR/deploy/web && mkdir -p $DIR/deploy/web && tar -x -C $DIR/deploy/web"
+  # Unpack next to the live folder, then swap the contents in one step. Never `rm -rf` the folder itself:
+  # it is bind-mounted into nginx, which would keep serving the deleted (empty) directory.
+  tar -C "$WEB_DIST" -cf - . | "${SSH[@]}" "set -e; rm -rf $DIR/deploy/web.new; mkdir -p $DIR/deploy/web.new $DIR/deploy/web; tar --no-same-owner -x -C $DIR/deploy/web.new; find $DIR/deploy/web -mindepth 1 -delete; cp -a $DIR/deploy/web.new/. $DIR/deploy/web/; rm -rf $DIR/deploy/web.new"
 fi
 
 echo "==> docker compose up"
