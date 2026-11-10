@@ -343,6 +343,18 @@ testului, deci nu e potrivit pentru reconstruirea hărții.
   cu `in=bbox:V,S,E,N` și `locationReferencing=shape` acoperă tot orașul; workerul o face la 10 minute
   (~4.300 de cereri pe lună). Cheia: `HERE_API_KEY`. Limita gratuită nu e publicată oficial; o verificăm
   pe cheie.
+- **Protecția costurilor** (contul HERE are card atașat):
+  - doar workerul apelează HERE; nicio cerere de utilizator (`/traffic`, rute, agent) nu face apeluri HERE;
+  - limită lunară fixă `HERE_MONTHLY_CAP` (implicit 4.000 pe instalare; local 300), numărată din
+    `source_runs` (reușite și eșuate); la limită sincronizarea se oprește (`skipped: monthly_cap_reached`);
+  - o singură încercare pe apel (fără reîncercări), fără `advancedFeatures` (facturate separat);
+  - noaptea (22–06) cel mult o dată la 30 de minute: ~3.500 de cereri pe lună în producție;
+  - rulările HERE se păstrează 40 de zile, ca numărătoarea lunară să nu se reseteze la curățenie.
+  - HERE nu trimite headere de cotă; consumul real se vede în contul HERE.
+- Primul apel real (2026-11-10): 1,2 MB, 945 de drumuri (7.069 de bucăți unite pe drum), toate cu nume,
+  98% date în timp real; `/traffic` are 261 KB (48 KB comprimat) și răspunde în ~130 ms.
+- Drumurile **închise** (`jamFactor` 10, de obicei lucrări) nu sunt tratate ca trafic: fără penalizare de
+  poluare, doar avertismentul „X e închis circulației auto (posibil lucrări).”.
 - Viteze în m/s (le convertim în km/h); `jamFactor` 0–10 (10 = închis); `confidence` > 0,7 = timp real.
 - Tabelul `traffic_segments` ține doar ultima imagine (se înlocuiește la fiecare sincronizare); datele
   mai vechi de 45 de minute nu se folosesc.

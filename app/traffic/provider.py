@@ -38,7 +38,8 @@ async def fetch(
         "locationReferencing": "shape",
         "apiKey": api_key,
     }
-    data = await request_json(client, "GET", URL, params=params)
+    # One attempt only: every HERE request is billed, retries included.
+    data = await request_json(client, "GET", URL, params=params, attempts=1)
     if not isinstance(data, dict) or not isinstance(data.get("results"), list):
         raise SourceError("unexpected_schema")
     return parse(data)
@@ -64,21 +65,31 @@ def parse(data: dict) -> tuple[datetime, list[FlowSegment]]:
         except (KeyError, TypeError, ValueError):
             continue
         closed = flow.get("traversability") == "closed" or jam >= 10
+        # The links of one location follow each other: join them into a single line.
+        points: list[list[float]] = []
+        classes: list[int] = []
         for link in (location.get("shape") or {}).get("links") or []:
-            points = [[p["lng"], p["lat"]] for p in link.get("points") or [] if "lat" in p and "lng" in p]
-            if len(points) < 2:
-                continue
-            segments.append(
-                FlowSegment(
-                    coordinates=points,
-                    description=location.get("description"),
-                    functional_class=link.get("functionalClass"),
-                    length_m=float(link.get("length") or 0),
-                    jam_factor=min(max(jam, 0.0), 10.0),
-                    speed_kmh=_kmh(flow.get("speed")),
-                    free_flow_kmh=_kmh(flow.get("freeFlow")),
-                    confidence=flow.get("confidence"),
-                    closed=closed,
-                )
+            link_points = [
+                [p["lng"], p["lat"]] for p in link.get("points") or [] if "lat" in p and "lng" in p
+            ]
+            if points and link_points and link_points[0] == points[-1]:
+                link_points = link_points[1:]
+            points.extend(link_points)
+            if isinstance(link.get("functionalClass"), int):
+                classes.append(link["functionalClass"])
+        if len(points) < 2:
+            continue
+        segments.append(
+            FlowSegment(
+                coordinates=points,
+                description=location.get("description"),
+                functional_class=min(classes) if classes else None,
+                length_m=float(location.get("length") or 0),
+                jam_factor=min(max(jam, 0.0), 10.0),
+                speed_kmh=_kmh(flow.get("speed")),
+                free_flow_kmh=_kmh(flow.get("freeFlow")),
+                confidence=flow.get("confidence"),
+                closed=closed,
             )
+        )
     return updated, segments

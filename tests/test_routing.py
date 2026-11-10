@@ -265,3 +265,25 @@ async def test_routing_unavailable_is_503(client, app):
         app.state.http = original
     assert response.status_code == 503
     assert response.json()["error"]["code"] == "routing_unavailable"
+
+
+async def test_routes_with_small_construction_polygons(client, session, fake_gh):
+    from datetime import UTC, datetime
+
+    from app.air.ingest import store_osm
+    from app.air.providers.records import OsmRecord
+
+    tiny = [[27.5900, 47.1600], [27.59001, 47.1600], [27.59001, 47.16001], [27.5900, 47.1600]]
+    await store_osm(
+        session,
+        [
+            OsmRecord("way/1", "construction", None, {"type": "Polygon", "coordinates": [tiny]}, {}),
+            OsmRecord("way/2", "construction", None, {"type": "LineString", "coordinates": tiny[:2]}, {}),
+        ],
+        datetime.now(UTC),
+    )
+    await session.commit()
+    response = await client.post(
+        "/routes", json={"origin": {"lat": 47.16, "lon": 27.58}, "destination": {"lat": 47.16, "lon": 27.60}}
+    )
+    assert response.status_code == 200, response.text

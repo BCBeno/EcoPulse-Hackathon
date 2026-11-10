@@ -147,8 +147,11 @@ async def _penalties(
             obstacle_circles.append(areas.circle(where.lat, where.lon, min(report.radius_m, 60)))
     tiers["report_air"] = areas.union_tier(air_circles)
     tiers["obstacle"] = areas.union_tier(obstacle_circles)
-    rows = await session.scalars(select(func.ST_AsGeoJSON(func.ST_Simplify(OsmFeature.geometry, 0.0001))))
-    construction = [p for row in rows for p in areas.buffered(shape(json.loads(row)), 30)]
+    # PreserveTopology never collapses a small polygon to NULL (plain ST_Simplify can).
+    rows = await session.scalars(
+        select(func.ST_AsGeoJSON(func.ST_SimplifyPreserveTopology(OsmFeature.geometry, 0.0001)))
+    )
+    construction = [p for row in rows if row for p in areas.buffered(shape(json.loads(row)), 30)]
     tiers["construction"] = areas.union_tier(construction)
     return tiers, reports
 
@@ -158,6 +161,7 @@ class CongestedRoad:
     polygons: list
     extra: float
     label: str
+    closed: bool = False  # closed to cars (often works): no traffic fumes, but worth a warning
 
 
 async def _congestion(session: AsyncSession, now: datetime, depart: datetime) -> list[CongestedRoad]:
@@ -168,18 +172,25 @@ async def _congestion(session: AsyncSession, now: datetime, depart: datetime) ->
     for row in await traffic.current(session, now, min_jam=heavy.min_jam):
         key = traffic.level(row.jam_factor, row.closed).key
         polygons = areas.buffered(shape(row.geometry), traffic.NEAR_ROAD_M)
-        extra = traffic.POLLUTION_BOOST.get(key, traffic.POLLUTION_BOOST["jammed"])
-        roads.append(CongestedRoad(polygons, extra, row.description or "un drum aglomerat"))
+        extra = traffic.POLLUTION_BOOST.get(key, 0.0)
+        roads.append(CongestedRoad(polygons, extra, row.description or "un drum", closed=row.closed))
     return roads
 
 
 def _roads_near(path: GhPath, roads: list[CongestedRoad]) -> list[str]:
+    """Warnings for congested or closed roads along the route, one per road name."""
     line = LineString(path.coordinates)
-    names: list[str] = []
+    seen: set[str] = set()
+    warnings: list[str] = []
     for road in roads:
-        if road.label not in names and any(polygon.intersects(line) for polygon in road.polygons):
-            names.append(road.label)
-    return names
+        if road.label in seen or not any(polygon.intersects(line) for polygon in road.polygons):
+            continue
+        seen.add(road.label)
+        if road.closed:
+            warnings.append(f"{road.label} e închis circulației auto (posibil lucrări).")
+        else:
+            warnings.append(f"Trece pe lângă trafic intens: {road.label}.")
+    return warnings
 
 
 def _boost(report: Report) -> Boost:
@@ -212,7 +223,7 @@ async def plan(
     grid = await air.grid_for(session, settings, None if request.depart_at is None else depart, cache)
     tiers, reports = await _penalties(session, grid, now)
     roads = await _congestion(session, now, depart)
-    tiers["traffic"] = areas.union_tier([p for road in roads for p in road.polygons])
+    tiers["traffic"] = areas.union_tier([p for road in roads if not road.closed for p in road.polygons])
     origin = (request.origin.lat, request.origin.lon)
     destination = (request.destination.lat, request.destination.lon)
     calls = [
@@ -243,7 +254,7 @@ async def plan(
     boosts = tuple(
         _boost(report) for report in reports if CATEGORIES[report.category].affects in ("air", "air_obstacle")
     )
-    area_boosts = tuple(AreaBoost(p, road.extra) for road in roads for p in road.polygons)
+    area_boosts = tuple(AreaBoost(p, road.extra) for road in roads if road.extra for p in road.polygons)
     candidates = [
         Candidate(path, measure(path, grid.spec, grid.layers, boosts, area_boosts)) for path in paths
     ]
@@ -273,8 +284,7 @@ def _route_out(
     for report in near:
         if CATEGORIES[report.category].affects in ("air", "air_obstacle"):
             warnings.append(f"Trece pe lângă un raport activ: {CATEGORIES[report.category].label.lower()}.")
-    for name in _roads_near(path, roads)[:MAX_TRAFFIC_WARNINGS]:
-        warnings.append(f"Trece pe lângă trafic intens: {name}.")
+    warnings.extend(_roads_near(path, roads)[:MAX_TRAFFIC_WARNINGS])
     if exposure.low_confidence_share > LOW_CONFIDENCE_WARNING:
         warnings.append("Date puține pe o porțiune a traseului: estimarea se bazează mai mult pe model.")
     vs_fastest = (

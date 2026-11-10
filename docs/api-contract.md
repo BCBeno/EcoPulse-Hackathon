@@ -370,6 +370,8 @@ Traficul în timp real pe drumurile principale (HERE Traffic, actualizat la 10 m
 - `status`: `ok` | `not_configured` (fără cheie HERE) | `no_data` (date mai vechi de 45 de minute).
 - `level` și culorile vin din `/config.traffic_levels`; `description` poate lipsi.
 - Atribuirea „Date de trafic: HERE” trebuie afișată când stratul e vizibil.
+- Un segment e un drum întreg (bucățile lui sunt unite); în Iași sunt ~950 de segmente.
+- Pe traseu, un drum închis apare ca avertisment `"<drum> e închis circulației auto (posibil lucrări)."`.
 
 ---
 

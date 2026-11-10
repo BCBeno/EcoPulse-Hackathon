@@ -34,6 +34,9 @@ MEASUREMENT_RETENTION = timedelta(days=7)
 FORECAST_RETENTION = timedelta(hours=24)
 GRID_RETENTION = timedelta(hours=6)
 RUN_RETENTION = timedelta(days=7)
+# Runs of billed sources are the request counter for the monthly cap: keep them past a month.
+BILLED_RUN_RETENTION = timedelta(days=40)
+BILLED_SOURCES = ("here_traffic",)
 CONVERSATION_RETENTION = timedelta(days=30)
 OSM_STALE_AFTER = timedelta(hours=48)
 BATCH = 1000
@@ -41,6 +44,36 @@ BATCH = 1000
 
 class SourceNotConfigured(Exception):
     pass
+
+
+class SourceSkipped(Exception):
+    """A deliberate skip (e.g. a billing cap), recorded as `skipped` with the reason."""
+
+    def __init__(self, reason: str):
+        super().__init__(reason)
+        self.reason = reason
+
+
+NIGHT_HOURS = (22, 6)  # local time: [22:00, 06:00) polls traffic less often
+
+
+def is_night(local_hour: int) -> bool:
+    start, end = NIGHT_HOURS
+    return local_hour >= start or local_hour < end
+
+
+async def billed_requests(session: AsyncSession, source: str, since: datetime) -> tuple[int, datetime | None]:
+    """Requests made to a paid source since `since` (successful or failed; skips do not count)."""
+    count, last = (
+        await session.execute(
+            select(func.count(), func.max(SourceRun.started_at)).where(
+                SourceRun.source == source,
+                SourceRun.status.in_(("ok", "failed")),
+                SourceRun.started_at >= since,
+            )
+        )
+    ).one()
+    return count, last
 
 
 async def store_readings(session: AsyncSession, readings: list[StationReading], now: datetime) -> int:
@@ -165,11 +198,18 @@ async def cleanup(session: AsyncSession, now: datetime) -> int:
         delete(ModelForecast).where(ModelForecast.valid_at < now - FORECAST_RETENTION),
         delete(WeatherHour).where(WeatherHour.valid_at < now - FORECAST_RETENTION),
         delete(GridSnapshot).where(GridSnapshot.computed_at < now - GRID_RETENTION),
-        delete(SourceRun).where(SourceRun.started_at < now - RUN_RETENTION),
+        delete(SourceRun).where(
+            SourceRun.started_at < now - RUN_RETENTION, SourceRun.source.not_in(BILLED_SOURCES)
+        ),
+        delete(SourceRun).where(SourceRun.started_at < now - BILLED_RUN_RETENTION),
         delete(Conversation).where(Conversation.updated_at < now - CONVERSATION_RETENTION),
     ):
         removed += (await session.execute(statement)).rowcount or 0
     return removed
+
+
+async def _not_configured(session: AsyncSession, now: datetime) -> int:
+    raise SourceNotConfigured
 
 
 class Ingestor:
@@ -192,6 +232,9 @@ class Ingestor:
             except SourceNotConfigured:
                 await session.rollback()
                 run.status, run.error = "skipped", "not_configured"
+            except SourceSkipped as skip:
+                await session.rollback()
+                run.status, run.error = "skipped", skip.reason
             except SourceError as error:
                 await session.rollback()
                 run.status, run.error = "failed", error.code
@@ -246,10 +289,30 @@ class Ingestor:
 
         return await self.run("osm", job)
 
-    async def traffic(self) -> SourceRun:
+    async def traffic(self) -> SourceRun | None:
+        """HERE is billed per request: hard monthly cap, slower polling at night, no retries."""
+        settings = self.settings
+        if not settings.here_api_key:
+            return await self.run("here_traffic", _not_configured)
+        now = datetime.now(UTC)
+        local = now.astimezone(settings.tz)
+        month_start = local.replace(day=1, hour=0, minute=0, second=0, microsecond=0).astimezone(UTC)
+        async with self.sessionmaker() as session:
+            used, last = await billed_requests(session, "here_traffic", month_start)
+        if (
+            is_night(local.hour)
+            and last
+            and now - last < timedelta(minutes=settings.here_night_every_min - 1)
+        ):
+            return None  # quiet hours: no request, nothing to log
+        cap_reached = used >= settings.here_monthly_cap
+
         async def job(session, now):
-            if not self.settings.here_api_key:
-                raise SourceNotConfigured
+            if cap_reached:
+                log.warning(
+                    "HERE monthly cap reached (%d/%d): traffic paused", used, settings.here_monthly_cap
+                )
+                raise SourceSkipped("monthly_cap_reached")
             observed_at, segments = await here_traffic.fetch(
                 self.http, self.settings.here_api_key, self.settings.city_bbox
             )

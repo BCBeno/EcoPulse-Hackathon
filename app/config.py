@@ -88,6 +88,10 @@ class Settings(BaseSettings):
     # HERE Traffic v7 (real-time flow). Empty key = no traffic layer.
     here_api_key: str = ""
     traffic_every_min: int = Field(default=10, ge=5)
+    # Billing guard: hard stop after this many HERE requests per calendar month (this installation).
+    # Day every 10 min + night every 30 min is ~3,500 per month.
+    here_monthly_cap: int = Field(default=4000, ge=0)
+    here_night_every_min: int = Field(default=30, ge=10)
 
     @field_validator("cors_origins", "trusted_proxies", mode="before")
     @classmethod
