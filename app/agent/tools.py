@@ -359,11 +359,16 @@ async def get_traffic(ctx: AgentContext, place: str | None = None):
         }
         for row in rows[:12]
     ]
-    named: dict[str, dict] = {}
+    congested: dict[str, dict] = {}
+    closed: list[str] = []
     for row in rows:
         name = row.description or "drum fără nume"
-        if name not in named:
-            named[name] = {
+        if row.closed:
+            # Closed to cars (usually works): not congestion, and not necessarily on the user's way.
+            if name not in closed:
+                closed.append(name)
+        elif name not in congested:
+            congested[name] = {
                 "road": name,
                 "level": traffic.level(row.jam_factor, row.closed).label,
                 "speed_kmh": row.speed_kmh,
@@ -371,9 +376,13 @@ async def get_traffic(ctx: AgentContext, place: str | None = None):
             }
     summary = {
         "area": where.label if where and where.label else ("în jurul tău" if where else "tot orașul"),
+        "scope": "near_place" if where else "whole_city_not_a_route",
         "time": now.astimezone(ctx.settings.tz).strftime("%H:%M"),
-        "congested_roads": list(named.values())[:6],
-        "all_fluent": not rows,
+        "congested_roads": list(congested.values())[:6],
+        "closed_to_cars_maybe_works": closed[:4],
+        "note": "Pentru traficul de pe drumul dintre două locuri folosește plan_routes."
+        if not where
+        else None,
     }
     card = {"type": "traffic", "center": where.point.model_dump() if where else None, "segments": segments}
     return ToolResult(summary, [card])

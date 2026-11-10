@@ -283,7 +283,13 @@ class Ingestor:
 
         return await self.run("weather", job)
 
-    async def osm(self) -> SourceRun:
+    async def osm(self) -> SourceRun | None:
+        """Runs hourly; fetches only if the last success is older than OSM_EVERY_H (Overpass is flaky)."""
+        async with self.sessionmaker() as session:
+            last = (await last_success(session)).get("osm")
+        if last and datetime.now(UTC) - last < timedelta(hours=self.settings.osm_every_h):
+            return None
+
         async def job(session, now):
             return await store_osm(session, await osm.fetch(self.http, self.settings.city_bbox), now)
 
