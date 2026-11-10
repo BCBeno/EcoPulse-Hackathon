@@ -38,8 +38,8 @@ async def test_unknown_token_is_rejected(client):
     assert response.json()["error"]["message"] == "Sesiunea nu mai este validă."
 
 
-async def test_device_creation_is_rate_limited_per_ip(client, app):
-    for _ in range(20):
+async def test_device_creation_is_rate_limited_per_ip(client, app, settings):
+    for _ in range(settings.devices_per_hour_per_ip):
         assert (await client.post("/devices")).status_code == 201
     response = await client.post("/devices")
     assert response.status_code == 429

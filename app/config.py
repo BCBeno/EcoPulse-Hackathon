@@ -67,12 +67,13 @@ class Settings(BaseSettings):
     openrouter_model: str = ""
     llm_timeout_s: float = Field(default=30, ge=5, le=120)
 
-    # Rate limits.
-    devices_per_hour_per_ip: int = Field(default=20, ge=1)
-    reads_per_minute_per_ip: int = Field(default=120, ge=1)
+    # Rate limits. Per-IP limits are generous: at a presentation every phone shares one Wi-Fi IP.
+    # Per-device limits and the agent quota do the real protecting.
+    devices_per_hour_per_ip: int = Field(default=300, ge=1)
+    reads_per_minute_per_ip: int = Field(default=1500, ge=1)
     writes_per_minute_per_device: int = Field(default=20, ge=1)
-    geocode_per_minute_per_ip: int = Field(default=60, ge=1)
-    routes_per_minute_per_ip: int = Field(default=20, ge=1)
+    geocode_per_minute_per_ip: int = Field(default=300, ge=1)
+    routes_per_minute_per_ip: int = Field(default=150, ge=1)
 
     graphhopper_url: str = "http://localhost:8989"
 

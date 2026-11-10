@@ -26,6 +26,8 @@ def make_settings(**overrides) -> Settings:
         "database_url": TEST_DATABASE_URL,
         "admin_api_key": ADMIN_KEY,
         "log_level": "WARNING",
+        # Small limit so the rate-limit test stays fast.
+        "devices_per_hour_per_ip": 20,
     }
     return Settings(_env_file=None, **(values | overrides))
 

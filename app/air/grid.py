@@ -3,7 +3,8 @@
 value(cell) = background(cell) + confidence(cell) * IDW(residuals) * decay
   background  CAMS at that hour, bilinear between the 0.1° CAMS points
   residuals   station value - background at the station, weighted by quality
-  confidence  1 next to a station, 0 at RADIUS_M or further
+  confidence  how local the estimate is: MODEL_CONFIDENCE where only the model is known,
+              rising to 1 next to a station; 0 where there is no data at all
   decay       1 now, exp(-hours_ahead / 6) for forecasts
 """
 
@@ -21,6 +22,8 @@ CELL_DEG_LON = 0.0033  # ~250 m at 47° N
 RADIUS_M = 2000.0
 MIN_DISTANCE_M = 50.0
 DECAY_HOURS = 6.0
+# Confidence of a model-only cell: an estimate, but not "no data".
+MODEL_CONFIDENCE = 0.3
 EARTH_M_PER_DEG = 111_320.0
 
 
@@ -170,8 +173,10 @@ def compute(
         )
         if values is not None:
             layers[parameter] = values
-        if parameter == "pm25":
-            confidence = conf * decay
+        if parameter == "pm25" and values is not None:
+            local = conf * decay
+            has_model = bool(backgrounds.get(parameter)) & np.isfinite(values)
+            confidence = np.where(has_model, MODEL_CONFIDENCE + (1 - MODEL_CONFIDENCE) * local, local)
     eaqi = eaqi_levels(layers)
     layers["eaqi"] = eaqi.astype(np.float32) if eaqi.size else np.zeros((spec.rows, spec.cols), np.float32)
     layers["confidence"] = confidence

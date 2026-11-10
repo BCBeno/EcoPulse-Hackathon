@@ -55,7 +55,8 @@ class ReportPage(BaseModel):
 class ReportCreate(BaseModel):
     category: CategoryId
     severity: int = Field(default=2, ge=1, le=3)
-    description: str = Field(min_length=5, max_length=DESCRIPTION_MAX)
+    # Optional: a report can be made in three taps; the category label is used as the description.
+    description: str | None = Field(default=None, min_length=5, max_length=DESCRIPTION_MAX)
     location: LatLon
     location_label: str | None = Field(default=None, max_length=120)
     observed_at: AwareDatetime | None = None

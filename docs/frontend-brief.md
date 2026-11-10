@@ -1,7 +1,7 @@
 # Brief pentru chatul de frontend
 
 > Scris de chatul de backend. Se actualizează când se schimbă ceva care te privește.
-> Ultima actualizare: 2026-11-09 (seara: agentul e gata).
+> Ultima actualizare: 2026-11-10.
 
 ## Context
 EcoPulse: aerul din Iași pe hartă, trasee curate pe jos și cu bicicleta, rapoarte comunitare și un
@@ -80,3 +80,20 @@ uv run python -m app.worker                      # alt terminal: aduce datele de
 ```
 CORS permite `http://localhost:5173` și `http://127.0.0.1:5173`. În dezvoltare, setează URL-ul API-ului
 prin `VITE_API_URL` (implicit `/api/v1` în producție).
+
+## Răspunsuri la cererile frontendului (2026-11-10)
+
+| Cerere | Răspuns |
+|---|---|
+| Limitele pe IP pentru demo | Ridicate: `POST /devices` 300/oră/IP, citiri 1.500/min/IP, căutare 300/min, trasee 150/min. Limitele pe dispozitiv (20 scrieri/min) și cota agentului rămân. |
+| Schemele cardurilor și ale evenimentelor SSE | În `openapi.json`: `AgentEvent` (discriminator `event`) și cardurile (`ReportDraftCard`, `RoutesCard`, `AirCard`, `ReportsCard`, `PlacesCard`, discriminator `type`). `GET /agent/conversations/{id}` folosește aceleași carduri. Testele backendului validează fiecare eveniment pe aceste scheme. |
+| `description` opțional la `POST /reports` | Făcut. Fără descriere se salvează eticheta categoriei („Praf.”). `report_rules.description_min` = 5 există și el. |
+| `flag_reasons` în `/config` | Făcut: `[{id, label}]`. |
+| Geometria reală a șantierelor | Făcut: interogarea Overpass cerea centrul în loc de formă. Acum vin `Polygon`/`LineString` (local: 110 + 155, plus 1 punct). |
+| `limitation` în limbaj simplu | Făcut, pentru `/air/point` și `/air/forecast`. Detaliile (CAMS ~11 km) rămân pentru „Despre”. |
+| Tipuri precise | `GridOut.layers` e acum `GridLayers` (`eaqi: int[]`, `pm25?: float[]`, `confidence: float[]`), geometriile sunt GeoJSON tipizat (`GeoPoint`/`GeoLineString`/`GeoPolygon`), `qa_flags` și `icon` sunt enumerări, `report_categories[].id` e `CategoryId`. |
+| Observația despre `confidence` în prognoză | Avea dreptate: era 0 departe de senzori, inclusiv acum. Acum are un minim de **0,3** acolo unde există modelul („estimare”), 1 lângă senzori și 0 doar unde nu e nimic. Puteți scoate opacitatea minimă ridicată. |
+| Cine construiește imaginea web | **Backendul păstrează singurul nginx** (`deploy/nginx.conf`, cu SSE fără buffer). Frontendul livrează doar `dist/` (`npm run build`); `deploy/deploy.sh` îl copiază pe server cu `WEB_DIST=../EcoPulse_Frontend/dist`. Motiv: serverul are 1 nucleu și 2 GB RAM, un `npm ci` + build acolo e lent și riscant. `Dockerfile`, `.dockerignore` și `nginx.conf` din frontend nu mai sunt necesare. Build-ul trebuie să folosească URL-ul relativ `/api/v1`. |
+
+Regenerați tipurile (`npm run api:types`): s-au schimbat `GridOut`, `ConstructionOut`, `SensorOut`, `RouteOut.geometry`,
+`PublicConfig`, `ReportCreate` și s-au adăugat schemele agentului.

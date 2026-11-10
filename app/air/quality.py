@@ -4,12 +4,14 @@ import math
 import statistics
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
+from typing import Literal
 from uuid import UUID
 
 STALE_AFTER = timedelta(hours=2)
 HUMID_PCT = 90.0
 NEIGHBOUR_RADIUS_M = 2000.0
 OFFICIAL_WEIGHT = 3.0
+QaFlag = Literal["high_humidity", "inconsistent", "outlier"]
 
 
 @dataclass

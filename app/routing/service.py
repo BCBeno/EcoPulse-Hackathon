@@ -18,7 +18,7 @@ from app.air import service as air
 from app.air.models import OsmFeature
 from app.config import Settings
 from app.errors import FieldError, invalid, outside_city
-from app.geo import LatLon, to_latlon
+from app.geo import GeoLineString, LatLon, to_latlon
 from app.reports.categories import CATEGORIES
 from app.reports.models import Report
 from app.reports.service import active_filter
@@ -66,7 +66,7 @@ class RouteOut(BaseModel):
     kinds: list[Literal["cleanest", "balanced", "fastest"]]
     distance_m: int
     duration_s: int
-    geometry: dict
+    geometry: GeoLineString
     exposure: RouteExposure
     segments: list[Segment]
     reports_nearby: list[UUID]

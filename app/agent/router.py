@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Annotated, Any, Literal
+from typing import Annotated, Literal
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Request
@@ -11,6 +11,7 @@ from sse_starlette import EventSourceResponse
 from app.agent import service
 from app.agent.llm import LlmClient
 from app.agent.models import Conversation, Message
+from app.agent.schemas import Card
 from app.agent.tools import AgentContext
 from app.air.router import forecast_cache
 from app.config import Settings, get_settings
@@ -44,7 +45,7 @@ class MessageOut(BaseModel):
     id: UUID
     role: Literal["user", "assistant"]
     text: str
-    cards: list[dict[str, Any]]
+    cards: list[Card]
     created_at: datetime
 
 

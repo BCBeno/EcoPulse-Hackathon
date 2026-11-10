@@ -13,11 +13,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.air import eaqi, grid, service
 from app.air.ingest import last_success
 from app.air.models import OsmFeature
+from app.air.quality import QaFlag
 from app.config import Settings, get_settings
 from app.db import get_session
 from app.devices.models import Device
 from app.errors import ErrorResponse, invalid, outside_city
-from app.geo import LatLon
+from app.geo import Geometry, LatLon
 from app.reports.models import Report
 from app.reports.schemas import ReportOut
 from app.reports.service import active_filter, to_out
@@ -28,9 +29,9 @@ Session = Annotated[AsyncSession, Depends(get_session)]
 SettingsDep = Annotated[Settings, Depends(get_settings)]
 
 LIMITATION = (
-    "Estimare din senzorii din apropiere și modelul CAMS (~11 km); nu e o măsurătoare exactă la stradă."
+    "Estimare din senzorii din apropiere și un model al calității aerului; pe stradă valorile pot diferi."
 )
-FORECAST_SOURCE = "CAMS Europe (Open-Meteo), corectat cu senzorii locali"
+FORECAST_SOURCE = "Prognoză a calității aerului, ajustată cu senzorii din oraș"
 HUMIDITY_NOTE = "Umiditate ridicată: senzorii ieftini pot supraestima particulele."
 MAX_REPORTS_ON_MAP = 500
 
@@ -63,7 +64,15 @@ class GridOut(BaseModel):
     d_lon: float
     rows: int
     cols: int
-    layers: dict[str, list[int | float | None]]
+    layers: "GridLayers"
+
+
+class GridLayers(BaseModel):
+    """Row-major from the south-west cell; null = no data (not clean air)."""
+
+    eaqi: list[int | None]
+    pm25: list[float | None] | None = None
+    confidence: list[float | None]
 
 
 class Reading(BaseModel):
@@ -79,12 +88,12 @@ class SensorOut(BaseModel):
     readings: dict[str, Reading]
     eaqi_level: int | None
     status: Literal["ok", "stale", "outlier"]
-    qa_flags: list[str]
+    qa_flags: list[QaFlag]
 
 
 class ConstructionOut(BaseModel):
     id: str
-    geometry: dict
+    geometry: Geometry
     name: str | None
     source: Literal["osm"] = "osm"
 
@@ -131,7 +140,7 @@ def _grid_out(result: service.GridResult) -> GridOut | None:
         d_lon=spec.d_lon,
         rows=spec.rows,
         cols=spec.cols,
-        layers=layers,
+        layers=GridLayers(**layers),
     )
 
 
@@ -239,7 +248,7 @@ class NearestSensor(BaseModel):
     distance_m: int
     pm25: float | None
     observed_at: datetime | None
-    qa_flags: list[str]
+    qa_flags: list[QaFlag]
 
 
 class WeatherOut(BaseModel):

@@ -19,6 +19,7 @@ async def test_config_exposes_shared_constants(client):
     assert {c["id"] for c in body["report_categories"]} >= {"smoke", "dust", "construction", "other"}
     assert [s["value"] for s in body["severities"]] == [1, 2, 3]
     assert body["report_rules"]["gone_votes_to_resolve"] == 3
+    assert [r["id"] for r in body["flag_reasons"]] == ["spam", "offensive", "personal_data", "wrong"]
     assert [m["id"] for m in body["modes"]] == ["walk", "bike"]
 
 

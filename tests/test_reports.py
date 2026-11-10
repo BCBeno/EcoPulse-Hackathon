@@ -281,3 +281,11 @@ async def test_cancelled_and_expired_drafts_cannot_be_published(client, alice, s
     response = await client.post(f"/reports/drafts/{old}/publish", json={}, headers=alice)
     assert response.status_code == 409
     assert "expirat" in response.json()["error"]["message"]
+
+
+async def test_description_is_optional(client, alice):
+    response = await client.post(
+        "/reports", json={"category": "dust", "severity": 1, "location": CENTER}, headers=alice
+    )
+    assert response.status_code == 201
+    assert response.json()["description"] == "Praf."

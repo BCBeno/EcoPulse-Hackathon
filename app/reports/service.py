@@ -60,7 +60,7 @@ async def create_report(
         device_id=device.id,
         category=data.category,
         severity=data.severity,
-        description=data.description,
+        description=data.description or f"{CATEGORIES[data.category].label}.",
         original_text=original_text,
         location=point_wkt(data.location.lat, data.location.lon),
         location_label=data.location_label,

@@ -19,6 +19,70 @@
         "title": "AgentConfig",
         "type": "object"
       },
+      "AgentEvent": {
+        "description": "One server-sent event of POST /agent/conversations/{id}/messages: `event` name + parsed `data`.",
+        "discriminator": {
+          "mapping": {
+            "card": "#/components/schemas/CardEvent",
+            "error": "#/components/schemas/ErrorEvent",
+            "message.end": "#/components/schemas/MessageEndEvent",
+            "message.start": "#/components/schemas/MessageStartEvent",
+            "status": "#/components/schemas/StatusEvent",
+            "text.delta": "#/components/schemas/TextDeltaEvent"
+          },
+          "propertyName": "event"
+        },
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/MessageStartEvent"
+          },
+          {
+            "$ref": "#/components/schemas/StatusEvent"
+          },
+          {
+            "$ref": "#/components/schemas/TextDeltaEvent"
+          },
+          {
+            "$ref": "#/components/schemas/CardEvent"
+          },
+          {
+            "$ref": "#/components/schemas/MessageEndEvent"
+          },
+          {
+            "$ref": "#/components/schemas/ErrorEvent"
+          }
+        ],
+        "title": "AgentEvent"
+      },
+      "AirCard": {
+        "properties": {
+          "forecast": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AirForecast"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "point": {
+            "$ref": "#/components/schemas/AirPoint"
+          },
+          "type": {
+            "const": "air",
+            "default": "air",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "point",
+          "forecast"
+        ],
+        "title": "AirCard",
+        "type": "object"
+      },
       "AirForecast": {
         "properties": {
           "best_window": {
@@ -252,6 +316,51 @@
         "title": "BestWindow",
         "type": "object"
       },
+      "CardEvent": {
+        "properties": {
+          "data": {
+            "discriminator": {
+              "mapping": {
+                "air": "#/components/schemas/AirCard",
+                "places": "#/components/schemas/PlacesCard",
+                "report_draft": "#/components/schemas/ReportDraftCard",
+                "reports": "#/components/schemas/ReportsCard",
+                "routes": "#/components/schemas/RoutesCard"
+              },
+              "propertyName": "type"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/ReportDraftCard"
+              },
+              {
+                "$ref": "#/components/schemas/RoutesCard"
+              },
+              {
+                "$ref": "#/components/schemas/AirCard"
+              },
+              {
+                "$ref": "#/components/schemas/ReportsCard"
+              },
+              {
+                "$ref": "#/components/schemas/PlacesCard"
+              }
+            ],
+            "title": "Data"
+          },
+          "event": {
+            "const": "card",
+            "title": "Event",
+            "type": "string"
+          }
+        },
+        "required": [
+          "event",
+          "data"
+        ],
+        "title": "CardEvent",
+        "type": "object"
+      },
       "City": {
         "properties": {
           "bbox": {
@@ -281,9 +390,26 @@
       "ConstructionOut": {
         "properties": {
           "geometry": {
-            "additionalProperties": true,
-            "title": "Geometry",
-            "type": "object"
+            "discriminator": {
+              "mapping": {
+                "LineString": "#/components/schemas/GeoLineString",
+                "Point": "#/components/schemas/GeoPoint",
+                "Polygon": "#/components/schemas/GeoPolygon"
+              },
+              "propertyName": "type"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/GeoPoint"
+              },
+              {
+                "$ref": "#/components/schemas/GeoLineString"
+              },
+              {
+                "$ref": "#/components/schemas/GeoPolygon"
+              }
+            ],
+            "title": "Geometry"
           },
           "id": {
             "title": "Id",
@@ -628,6 +754,46 @@
         "title": "ErrorBody",
         "type": "object"
       },
+      "ErrorData": {
+        "properties": {
+          "code": {
+            "enum": [
+              "busy",
+              "internal_error"
+            ],
+            "title": "Code",
+            "type": "string"
+          },
+          "message": {
+            "title": "Message",
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "message"
+        ],
+        "title": "ErrorData",
+        "type": "object"
+      },
+      "ErrorEvent": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/ErrorData"
+          },
+          "event": {
+            "const": "error",
+            "title": "Event",
+            "type": "string"
+          }
+        },
+        "required": [
+          "event",
+          "data"
+        ],
+        "title": "ErrorEvent",
+        "type": "object"
+      },
       "ErrorResponse": {
         "properties": {
           "error": {
@@ -751,6 +917,87 @@
         "title": "ForecastHour",
         "type": "object"
       },
+      "GeoLineString": {
+        "properties": {
+          "coordinates": {
+            "items": {
+              "items": {
+                "type": "number"
+              },
+              "maxItems": 2,
+              "minItems": 2,
+              "type": "array"
+            },
+            "title": "Coordinates",
+            "type": "array"
+          },
+          "type": {
+            "const": "LineString",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "coordinates"
+        ],
+        "title": "GeoLineString",
+        "type": "object"
+      },
+      "GeoPoint": {
+        "properties": {
+          "coordinates": {
+            "items": {
+              "type": "number"
+            },
+            "maxItems": 2,
+            "minItems": 2,
+            "title": "Coordinates",
+            "type": "array"
+          },
+          "type": {
+            "const": "Point",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "coordinates"
+        ],
+        "title": "GeoPoint",
+        "type": "object"
+      },
+      "GeoPolygon": {
+        "properties": {
+          "coordinates": {
+            "items": {
+              "items": {
+                "items": {
+                  "type": "number"
+                },
+                "maxItems": 2,
+                "minItems": 2,
+                "type": "array"
+              },
+              "type": "array"
+            },
+            "title": "Coordinates",
+            "type": "array"
+          },
+          "type": {
+            "const": "Polygon",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "coordinates"
+        ],
+        "title": "GeoPolygon",
+        "type": "object"
+      },
       "GpsLocation": {
         "properties": {
           "accuracy_m": {
@@ -780,6 +1027,66 @@
         "title": "GpsLocation",
         "type": "object"
       },
+      "GridLayers": {
+        "description": "Row-major from the south-west cell; null = no data (not clean air).",
+        "properties": {
+          "confidence": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "title": "Confidence",
+            "type": "array"
+          },
+          "eaqi": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "title": "Eaqi",
+            "type": "array"
+          },
+          "pm25": {
+            "anyOf": [
+              {
+                "items": {
+                  "anyOf": [
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pm25"
+          }
+        },
+        "required": [
+          "eaqi",
+          "confidence"
+        ],
+        "title": "GridLayers",
+        "type": "object"
+      },
       "GridOut": {
         "properties": {
           "cols": {
@@ -795,24 +1102,7 @@
             "type": "number"
           },
           "layers": {
-            "additionalProperties": {
-              "items": {
-                "anyOf": [
-                  {
-                    "type": "integer"
-                  },
-                  {
-                    "type": "number"
-                  },
-                  {
-                    "type": "null"
-                  }
-                ]
-              },
-              "type": "array"
-            },
-            "title": "Layers",
-            "type": "object"
+            "$ref": "#/components/schemas/GridLayers"
           },
           "rows": {
             "title": "Rows",
@@ -1029,6 +1319,51 @@
         "title": "MessageContext",
         "type": "object"
       },
+      "MessageEndData": {
+        "properties": {
+          "engine": {
+            "enum": [
+              "llm",
+              "rules"
+            ],
+            "title": "Engine",
+            "type": "string"
+          },
+          "message_id": {
+            "format": "uuid",
+            "title": "Message Id",
+            "type": "string"
+          },
+          "quota": {
+            "$ref": "#/components/schemas/Quota"
+          }
+        },
+        "required": [
+          "message_id",
+          "engine",
+          "quota"
+        ],
+        "title": "MessageEndData",
+        "type": "object"
+      },
+      "MessageEndEvent": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/MessageEndData"
+          },
+          "event": {
+            "const": "message.end",
+            "title": "Event",
+            "type": "string"
+          }
+        },
+        "required": [
+          "event",
+          "data"
+        ],
+        "title": "MessageEndEvent",
+        "type": "object"
+      },
       "MessageIn": {
         "properties": {
           "client_message_id": {
@@ -1057,8 +1392,33 @@
         "properties": {
           "cards": {
             "items": {
-              "additionalProperties": true,
-              "type": "object"
+              "discriminator": {
+                "mapping": {
+                  "air": "#/components/schemas/AirCard",
+                  "places": "#/components/schemas/PlacesCard",
+                  "report_draft": "#/components/schemas/ReportDraftCard",
+                  "reports": "#/components/schemas/ReportsCard",
+                  "routes": "#/components/schemas/RoutesCard"
+                },
+                "propertyName": "type"
+              },
+              "oneOf": [
+                {
+                  "$ref": "#/components/schemas/ReportDraftCard"
+                },
+                {
+                  "$ref": "#/components/schemas/RoutesCard"
+                },
+                {
+                  "$ref": "#/components/schemas/AirCard"
+                },
+                {
+                  "$ref": "#/components/schemas/ReportsCard"
+                },
+                {
+                  "$ref": "#/components/schemas/PlacesCard"
+                }
+              ]
             },
             "title": "Cards",
             "type": "array"
@@ -1094,6 +1454,38 @@
           "created_at"
         ],
         "title": "MessageOut",
+        "type": "object"
+      },
+      "MessageStartData": {
+        "properties": {
+          "message_id": {
+            "format": "uuid",
+            "title": "Message Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "message_id"
+        ],
+        "title": "MessageStartData",
+        "type": "object"
+      },
+      "MessageStartEvent": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/MessageStartData"
+          },
+          "event": {
+            "const": "message.start",
+            "title": "Event",
+            "type": "string"
+          }
+        },
+        "required": [
+          "event",
+          "data"
+        ],
+        "title": "MessageStartEvent",
         "type": "object"
       },
       "NearestSensor": {
@@ -1140,6 +1532,11 @@
           },
           "qa_flags": {
             "items": {
+              "enum": [
+                "high_humidity",
+                "inconsistent",
+                "outlier"
+              ],
               "type": "string"
             },
             "title": "Qa Flags",
@@ -1212,6 +1609,33 @@
         "title": "PlaceList",
         "type": "object"
       },
+      "PlacesCard": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/Place"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "query": {
+            "title": "Query",
+            "type": "string"
+          },
+          "type": {
+            "const": "places",
+            "default": "places",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "query",
+          "items"
+        ],
+        "title": "PlacesCard",
+        "type": "object"
+      },
       "Pollutant": {
         "properties": {
           "level": {
@@ -1281,6 +1705,13 @@
           "city": {
             "$ref": "#/components/schemas/City"
           },
+          "flag_reasons": {
+            "items": {
+              "$ref": "#/components/schemas/Labelled"
+            },
+            "title": "Flag Reasons",
+            "type": "array"
+          },
           "forecast_horizon_h": {
             "title": "Forecast Horizon H",
             "type": "integer"
@@ -1326,6 +1757,7 @@
           "aqi_note",
           "report_categories",
           "severities",
+          "flag_reasons",
           "report_rules",
           "modes",
           "route_kinds",
@@ -1431,10 +1863,36 @@
             "type": "integer"
           },
           "icon": {
+            "enum": [
+              "smoke",
+              "dust",
+              "factory",
+              "construction",
+              "machinery",
+              "traffic",
+              "obstruction",
+              "flooding",
+              "infrastructure",
+              "lighting",
+              "other"
+            ],
             "title": "Icon",
             "type": "string"
           },
           "id": {
+            "enum": [
+              "smoke",
+              "dust",
+              "industrial",
+              "construction",
+              "machinery",
+              "traffic",
+              "obstruction",
+              "flooding",
+              "infrastructure",
+              "lighting",
+              "other"
+            ],
             "title": "Id",
             "type": "string"
           },
@@ -1478,10 +1936,17 @@
             "type": "string"
           },
           "description": {
-            "maxLength": 600,
-            "minLength": 5,
-            "title": "Description",
-            "type": "string"
+            "anyOf": [
+              {
+                "maxLength": 600,
+                "minLength": 5,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
           },
           "location": {
             "$ref": "#/components/schemas/LatLon"
@@ -1520,10 +1985,117 @@
         },
         "required": [
           "category",
-          "description",
           "location"
         ],
         "title": "ReportCreate",
+        "type": "object"
+      },
+      "ReportDraftCard": {
+        "properties": {
+          "category": {
+            "enum": [
+              "smoke",
+              "dust",
+              "industrial",
+              "construction",
+              "machinery",
+              "traffic",
+              "obstruction",
+              "flooding",
+              "infrastructure",
+              "lighting",
+              "other"
+            ],
+            "title": "Category",
+            "type": "string"
+          },
+          "description": {
+            "title": "Description",
+            "type": "string"
+          },
+          "draft_id": {
+            "format": "uuid",
+            "title": "Draft Id",
+            "type": "string"
+          },
+          "extraction": {
+            "enum": [
+              "llm",
+              "rules"
+            ],
+            "title": "Extraction",
+            "type": "string"
+          },
+          "location": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/LatLon"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "location_label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Location Label"
+          },
+          "location_source": {
+            "enum": [
+              "place",
+              "gps",
+              "map",
+              "none"
+            ],
+            "title": "Location Source",
+            "type": "string"
+          },
+          "needs_location": {
+            "title": "Needs Location",
+            "type": "boolean"
+          },
+          "severity": {
+            "maximum": 3.0,
+            "minimum": 1.0,
+            "title": "Severity",
+            "type": "integer"
+          },
+          "status": {
+            "enum": [
+              "pending",
+              "published",
+              "cancelled"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "type": {
+            "const": "report_draft",
+            "default": "report_draft",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "draft_id",
+          "status",
+          "category",
+          "severity",
+          "description",
+          "location",
+          "location_label",
+          "location_source",
+          "needs_location",
+          "extraction"
+        ],
+        "title": "ReportDraftCard",
         "type": "object"
       },
       "ReportOut": {
@@ -1666,6 +2238,10 @@
             "title": "Description Max",
             "type": "integer"
           },
+          "description_min": {
+            "title": "Description Min",
+            "type": "integer"
+          },
           "gone_votes_to_resolve": {
             "title": "Gone Votes To Resolve",
             "type": "integer"
@@ -1677,10 +2253,37 @@
         },
         "required": [
           "gone_votes_to_resolve",
+          "description_min",
           "description_max",
           "text_max"
         ],
         "title": "ReportRules",
+        "type": "object"
+      },
+      "ReportsCard": {
+        "properties": {
+          "center": {
+            "$ref": "#/components/schemas/LatLon"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ReportOut"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "type": {
+            "const": "reports",
+            "default": "reports",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "center",
+          "items"
+        ],
+        "title": "ReportsCard",
         "type": "object"
       },
       "ReverseOut": {
@@ -1771,9 +2374,7 @@
             "$ref": "#/components/schemas/RouteExposure"
           },
           "geometry": {
-            "additionalProperties": true,
-            "title": "Geometry",
-            "type": "object"
+            "$ref": "#/components/schemas/GeoLineString"
           },
           "google_maps_url": {
             "title": "Google Maps Url",
@@ -1868,6 +2469,28 @@
           "destination"
         ],
         "title": "RouteRequest",
+        "type": "object"
+      },
+      "RoutesCard": {
+        "properties": {
+          "request": {
+            "$ref": "#/components/schemas/RouteRequest"
+          },
+          "result": {
+            "$ref": "#/components/schemas/RoutesOut"
+          },
+          "type": {
+            "const": "routes",
+            "default": "routes",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "request",
+          "result"
+        ],
+        "title": "RoutesCard",
         "type": "object"
       },
       "RoutesOut": {
@@ -1979,6 +2602,11 @@
           },
           "qa_flags": {
             "items": {
+              "enum": [
+                "high_humidity",
+                "inconsistent",
+                "outlier"
+              ],
               "type": "string"
             },
             "title": "Qa Flags",
@@ -2075,6 +2703,55 @@
           "last_success"
         ],
         "title": "SourcesSummary",
+        "type": "object"
+      },
+      "StatusEvent": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/TextData"
+          },
+          "event": {
+            "const": "status",
+            "title": "Event",
+            "type": "string"
+          }
+        },
+        "required": [
+          "event",
+          "data"
+        ],
+        "title": "StatusEvent",
+        "type": "object"
+      },
+      "TextData": {
+        "properties": {
+          "text": {
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "text"
+        ],
+        "title": "TextData",
+        "type": "object"
+      },
+      "TextDeltaEvent": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/TextData"
+          },
+          "event": {
+            "const": "text.delta",
+            "title": "Event",
+            "type": "string"
+          }
+        },
+        "required": [
+          "event",
+          "data"
+        ],
+        "title": "TextDeltaEvent",
         "type": "object"
       },
       "ValidationError": {

@@ -17,13 +17,27 @@ CategoryId = Literal[
     "other",
 ]
 Affects = Literal["air", "obstacle", "air_obstacle", "info"]
+# Icon keys the frontend maps to its own icon set.
+IconKey = Literal[
+    "smoke",
+    "dust",
+    "factory",
+    "construction",
+    "machinery",
+    "traffic",
+    "obstruction",
+    "flooding",
+    "infrastructure",
+    "lighting",
+    "other",
+]
 
 
 @dataclass(frozen=True)
 class Category:
     id: CategoryId
     label: str
-    icon: str
+    icon: IconKey
     affects: Affects
     duration_h: int
     radius_m: int
@@ -47,6 +61,12 @@ CATEGORIES: dict[str, Category] = {
 }
 
 SEVERITIES = {1: "Mică", 2: "Medie", 3: "Mare"}
+FLAG_REASONS = {
+    "spam": "Spam sau reclamă",
+    "offensive": "Limbaj jignitor",
+    "personal_data": "Conține date personale",
+    "wrong": "Informație greșită",
+}
 
 # Community resolution: at least this many "gone" votes, and more "gone" than "still_there".
 GONE_VOTES_TO_RESOLVE = 3

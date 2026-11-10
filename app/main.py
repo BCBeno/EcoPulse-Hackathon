@@ -3,6 +3,7 @@ from contextlib import asynccontextmanager
 from fastapi import APIRouter, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
+from fastapi.openapi.utils import get_openapi
 
 from app.agent.router import router as agent_router
 from app.air.router import router as air_router
@@ -74,7 +75,32 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     ):
         api.include_router(router)
     app.include_router(api)
+    install_openapi_extras(app)
     return app
+
+
+def install_openapi_extras(app: FastAPI) -> None:
+    """Adds schemas FastAPI cannot see on its own (the SSE event union) to components."""
+    from pydantic.json_schema import models_json_schema
+
+    from app.agent.schemas import AgentEvent
+
+    def openapi():
+        if app.openapi_schema:
+            return app.openapi_schema
+        schema = get_openapi(
+            title=app.title, version=app.version, description=app.description, routes=app.routes
+        )
+        _, definitions = models_json_schema(
+            [(AgentEvent, "serialization")], ref_template="#/components/schemas/{model}"
+        )
+        components = schema.setdefault("components", {}).setdefault("schemas", {})
+        for name, definition in definitions.get("$defs", {}).items():
+            components.setdefault(name, definition)
+        app.openapi_schema = schema
+        return schema
+
+    app.openapi = openapi
 
 
 app = create_app()

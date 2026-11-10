@@ -128,7 +128,12 @@ def test_osm_geometry_types():
     elements = [
         {"type": "way", "id": 1, "tags": {"landuse": "construction"}, "geometry": [*square, square[0]]},
         {"type": "way", "id": 2, "tags": {"highway": "construction"}, "geometry": square[:2]},
-        {"type": "relation", "id": 3, "tags": {"name": "Pasaj"}, "center": {"lat": 47.15, "lon": 27.6}},
+        {
+            "type": "relation",
+            "id": 3,
+            "tags": {"name": "Pasaj"},
+            "bounds": {"minlat": 47.14, "minlon": 27.59, "maxlat": 47.16, "maxlon": 27.61},
+        },
         {"type": "node", "id": 4, "lat": 44.0, "lon": 26.0, "tags": {}},
     ]
     records = {r.osm_id: r for r in osm.parse(elements, CITY)}
@@ -187,7 +192,7 @@ def test_grid_is_background_far_from_stations_and_station_value_nearby():
     far = grid.sample(spec, layers["pm25"], 47.06, 27.74)
     assert at_station == pytest.approx(40.0, abs=4)
     assert far == pytest.approx(10.0 + (47.06 - 47.0) * 10, abs=0.1)
-    assert grid.sample(spec, layers["confidence"], 47.06, 27.74) == 0
+    assert grid.sample(spec, layers["confidence"], 47.06, 27.74) == pytest.approx(grid.MODEL_CONFIDENCE)
     assert grid.sample(spec, layers["eaqi"], 47.1601, 27.5901) == 3
 
 
@@ -208,6 +213,16 @@ def test_grid_without_any_data_has_no_levels():
     layers = grid.compute(spec, {}, {})
     assert not np.any(layers["eaqi"])
     assert "pm25" not in layers
+    assert not np.any(layers["confidence"])
+
+
+def test_forecast_confidence_keeps_the_model_floor():
+    spec = grid.GridSpec.for_bounds(CITY)
+    near = [grid.StationInput(47.16, 27.59, 40.0, 1.0)]
+    later = grid.compute(spec, {"pm25": LATTICE}, {"pm25": near}, hours_ahead=24)
+    assert grid.sample(spec, later["confidence"], 47.16, 27.59) == pytest.approx(
+        grid.MODEL_CONFIDENCE, abs=0.02
+    )
 
 
 def test_pack_roundtrip():

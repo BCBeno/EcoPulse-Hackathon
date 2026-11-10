@@ -24,7 +24,8 @@ def query(bounds: Bounds) -> str:
         f'nwr["landuse"="construction"]({box});'
         f'nwr["highway"="construction"]({box});'
         f'nwr["building"="construction"]({box});'
-        ");out tags geom center;"
+        # Only one geometry modifier counts in Overpass: `geom` gives way shapes (and relation bounds).
+        ");out tags geom;"
     )
 
 
@@ -72,10 +73,15 @@ def _geometry(item: dict) -> dict | None:
         return {"type": "Polygon", "coordinates": [points]}
     if item.get("type") == "way" and len(points) >= 2:
         return {"type": "LineString", "coordinates": points}
-    center = item.get("center") or (item if "lat" in item and "lon" in item else None)
-    if center is None:
-        return None
-    return {"type": "Point", "coordinates": [center["lon"], center["lat"]]}
+    if "lat" in item and "lon" in item:
+        return {"type": "Point", "coordinates": [item["lon"], item["lat"]]}
+    bounds = item.get("bounds") or {}
+    if {"minlat", "minlon", "maxlat", "maxlon"} <= bounds.keys():
+        # Relations: the centre of their bounding box.
+        lat = (bounds["minlat"] + bounds["maxlat"]) / 2
+        lon = (bounds["minlon"] + bounds["maxlon"]) / 2
+        return {"type": "Point", "coordinates": [lon, lat]}
+    return None
 
 
 def _anchor(geometry: dict) -> tuple[float, float]:

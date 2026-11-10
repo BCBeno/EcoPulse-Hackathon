@@ -24,7 +24,7 @@ MAX_SLOWDOWN = 1.5  # the cleanest route may take at most 1.5 x the fastest
 MIN_GAIN = 0.05  # below 5 % less exposure, the cleaner route is not worth showing separately
 SAME_ROUTE_OVERLAP = 0.9
 OVERLAP_BUFFER_M = 15.0
-LOW_CONFIDENCE = 0.2
+LOW_CONFIDENCE = 0.35  # at or below model-only confidence (grid.MODEL_CONFIDENCE = 0.3)
 REPORT_BOOST = {1: 10.0, 2: 25.0, 3: 50.0}  # µg/m³ PM2.5-equivalent inside an air report's radius
 
 

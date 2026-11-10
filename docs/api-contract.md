@@ -97,7 +97,9 @@ Tot ce are nevoie frontendul ca să nu dubleze constante.
   "severities": [
     {"value": 1, "label": "Mică"}, {"value": 2, "label": "Medie"}, {"value": 3, "label": "Mare"}
   ],
-  "report_rules": {"gone_votes_to_resolve": 3, "description_max": 600, "text_max": 1000},
+  "flag_reasons": [{"id": "spam", "label": "Spam sau reclamă"}, {"id": "offensive", "label": "Limbaj jignitor"},
+                   {"id": "personal_data", "label": "Conține date personale"}, {"id": "wrong", "label": "Informație greșită"}],
+  "report_rules": {"gone_votes_to_resolve": 3, "description_min": 5, "description_max": 600, "text_max": 1000},
   "modes": [{"id": "walk", "label": "Pe jos"}, {"id": "bike", "label": "Bicicletă"}],
   "route_kinds": [
     {"id": "cleanest", "label": "Cel mai curat"},
@@ -179,6 +181,9 @@ cele de acum.
 - Indexul celulei: `i = row * cols + col`; centrul celulei:
   `lat = south + (row + 0.5) * d_lat`, `lon = west + (col + 0.5) * d_lon`.
 - `null` = fără date în celula respectivă (nu „aer curat”).
+- `confidence` spune cât de locală e estimarea: **0,3** unde există doar modelul, până la **1** lângă un senzor,
+  **0** unde nu există date deloc. În prognoză partea de la senzori scade în timp, dar rămâne minimum 0,3.
+- Geometriile șantierelor sunt reale: `Polygon` sau `LineString` (rar `Point`).
 - `rows`/`cols` se iau din răspuns (acum 94 × 107); nu le fixa în frontend.
 - `eaqi` are valori întregi 1–6; `pm25` are o zecimală; `confidence` are două zecimale.
 - `at` din răspuns e momentul grilei (stabil între două recalculări), ca ETag-ul să rămână același.
@@ -234,7 +239,7 @@ cele de acum.
   "weather": {"temperature_c": 4.2, "humidity_pct": 94, "wind_speed_ms": 1.1,
               "wind_dir_deg": 310, "precipitation_mm": 0.0},
   "notes": ["Umiditate ridicată: senzorii ieftini pot supraestima particulele."],
-  "limitation": "Estimare din senzori din apropiere și modelul CAMS (~11 km); nu e o măsurătoare exactă la stradă."
+  "limitation": "Estimare din senzorii din apropiere și un model al calității aerului; pe stradă valorile pot diferi."
 }
 ```
 Eticheta, culoarea și sfatul pentru `level` se iau din `/config`. `source` lipsă = combinat
@@ -377,7 +382,8 @@ Raport direct, fără agent (din formular sau din butoanele rapide).
   "observed_at": null
 }
 ```
-`observed_at`: `null` = acum, altfel cel mult 48 h în urmă. `201` → `Report`.
+`observed_at`: `null` = acum, altfel cel mult 48 h în urmă. `description` e **opțional** (raport în trei
+atingeri); dacă lipsește, descrierea devine eticheta categoriei (ex. „Praf.”). `201` → `Report`.
 
 ### `POST /reports/drafts/{draft_id}/publish`
 Butonul „Publică” de pe cardul agentului. Toate câmpurile sunt opționale (corecturi ale
@@ -427,6 +433,9 @@ Cardurile vechi își păstrează datele, dar o ciornă publicată între timp a
 `status: "published"`.
 
 ### `POST /agent/conversations/{id}/messages` → `text/event-stream`
+
+Tipurile exacte sunt în `openapi.json`: `AgentEvent` (uniune după `event`) și `Card` (uniune după `type`:
+`ReportDraftCard`, `RoutesCard`, `AirCard`, `ReportsCard`, `PlacesCard`).
 Cerere:
 ```json
 {

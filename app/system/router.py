@@ -15,9 +15,12 @@ from app.geo import LatLon
 from app.reports.categories import (
     CATEGORIES,
     DESCRIPTION_MAX,
+    FLAG_REASONS,
     GONE_VOTES_TO_RESOLVE,
     ORIGINAL_TEXT_MAX,
     SEVERITIES,
+    CategoryId,
+    IconKey,
 )
 
 router = APIRouter(tags=["system"])
@@ -103,9 +106,9 @@ class AqiLevel(BaseModel):
 
 
 class ReportCategoryOut(BaseModel):
-    id: str
+    id: CategoryId
     label: str
-    icon: str
+    icon: IconKey
     affects: Literal["air", "obstacle", "air_obstacle", "info"]
     duration_h: int
     radius_m: int
@@ -118,6 +121,7 @@ class Severity(BaseModel):
 
 class ReportRules(BaseModel):
     gone_votes_to_resolve: int
+    description_min: int
     description_max: int
     text_max: int
 
@@ -147,6 +151,7 @@ class PublicConfig(BaseModel):
     aqi_note: str
     report_categories: list[ReportCategoryOut]
     severities: list[Severity]
+    flag_reasons: list[Labelled]
     report_rules: ReportRules
     modes: list[Labelled]
     route_kinds: list[Labelled]
@@ -169,8 +174,10 @@ def build_config(settings: Settings) -> PublicConfig:
         aqi_note=eaqi.NOTE,
         report_categories=[ReportCategoryOut(**vars(c)) for c in CATEGORIES.values()],
         severities=[Severity(value=v, label=label) for v, label in SEVERITIES.items()],
+        flag_reasons=[Labelled(id=key, label=label) for key, label in FLAG_REASONS.items()],
         report_rules=ReportRules(
             gone_votes_to_resolve=GONE_VOTES_TO_RESOLVE,
+            description_min=5,
             description_max=DESCRIPTION_MAX,
             text_max=ORIGINAL_TEXT_MAX,
         ),

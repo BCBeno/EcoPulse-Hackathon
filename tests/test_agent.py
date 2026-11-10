@@ -10,6 +10,7 @@ from sqlalchemy import select
 from app.agent import rules
 from app.agent.llm import Completion, LlmUnavailable, ToolCall
 from app.agent.models import LlmUsage
+from app.agent.schemas import AgentEvent
 from app.agent.service import place_in_text
 from app.agent.tools import scrub
 from app.air.ingest import store_forecasts
@@ -85,7 +86,10 @@ async def send(client, headers, conversation_id, text, *, message_id=None, conte
             if line.startswith("event:"):
                 name = line.split(":", 1)[1].strip()
             elif line.startswith("data:") and name:
-                events.append((name, json.loads(line.split(":", 1)[1].strip())))
+                data = json.loads(line.split(":", 1)[1].strip())
+                # Every event must match the schema published in openapi.json.
+                AgentEvent.model_validate({"event": name, "data": data})
+                events.append((name, data))
                 name = None
     return events
 
